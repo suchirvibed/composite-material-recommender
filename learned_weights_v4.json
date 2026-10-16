@@ -1,0 +1,50 @@
+{
+  "Aerospace": {
+    "labels": {
+      "positive": 41,
+      "total": 52
+    },
+    "ahp_weights": {
+      "strength": 0.1929,
+      "modulus": 0.3683,
+      "density": 0.3683,
+      "elongation": 0.0704
+    },
+    "learned_weights_mean": {
+      "strength": 0.2135,
+      "modulus": 0.3317,
+      "density": 0.382,
+      "elongation": 0.0727
+    },
+    "learned_weights_std": {
+      "strength": 0.0353,
+      "modulus": 0.0653,
+      "density": 0.0256,
+      "elongation": 0.0051
+    }
+  },
+  "Industrial": {
+    "labels": {
+      "positive": 24,
+      "total": 52
+    },
+    "ahp_weights": {
+      "strength": 0.4236,
+      "modulus": 0.227,
+      "density": 0.227,
+      "elongation": 0.1223
+    },
+    "learned_weights_mean": {
+      "strength": 0.4559,
+      "modulus": 0.2143,
+      "density": 0.212,
+      "elongation": 0.1179
+    },
+    "learned_weights_std": {
+      "strength": 0.0294,
+      "modulus": 0.0345,
+      "density": 0.0072,
+      "elongation": 0.0085
+    }
+  }
+}

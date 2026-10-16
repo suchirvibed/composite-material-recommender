@@ -12,6 +12,9 @@ Key changes:
 - Adds optional prepreg/resin process filtering without pretending
   generic compatibility is a manufacturer qualification.
 - Leaves room for future laminate/process recommendation layers.
+- Derives property importance weights with AHP (Analytic Hierarchy
+  Process) pairwise comparisons, and rejects inconsistent judgments
+  via the consistency ratio (CR < 0.10).
 
 Database files expected beside this script (or set paths below):
     Carbon_Fiber_Master_v6_Top5.csv
@@ -31,6 +34,8 @@ from typing import Any, Dict, Iterable, Optional
 
 import numpy as np
 import pandas as pd
+
+import lamina_estimator
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -65,35 +70,122 @@ def resolve_file(primary: Path, description: str) -> Path:
     )
 
 
+# ============================================================
+# AHP (ANALYTIC HIERARCHY PROCESS) WEIGHTS
+#
+# Instead of hand-typing importance weights, each application states
+# pairwise judgments on Saaty's 1-9 scale: "how much more important is
+# A than B?" (1 = equal, 3 = moderate, 5 = strong, 7 = very strong,
+# 9 = extreme; use 1/x when B is more important). The weights are the
+# normalized principal eigenvector of the pairwise matrix.
+# ============================================================
+
+CRITERIA = ["strength", "modulus", "density", "elongation"]
+
+# Every unordered criteria pair, in the order judgments are listed/asked.
+CRITERIA_PAIRS = [
+    (a, b) for i, a in enumerate(CRITERIA) for b in CRITERIA[i + 1:]
+]
+
+# Saaty's random consistency index, by matrix size.
+RANDOM_INDEX = {1: 0.0, 2: 0.0, 3: 0.58, 4: 0.90, 5: 1.12,
+                6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49}
+
+CR_THRESHOLD = 0.10
+
+
+@dataclass
+class AhpResult:
+    weights: Dict[str, float]
+    lambda_max: float
+    consistency_index: float
+    consistency_ratio: float
+
+    @property
+    def consistent(self) -> bool:
+        return self.consistency_ratio < CR_THRESHOLD
+
+
+def build_pairwise_matrix(judgments: Dict[tuple, float]) -> np.ndarray:
+    """Build the reciprocal AHP matrix from upper-triangle judgments."""
+    n = len(CRITERIA)
+    matrix = np.ones((n, n))
+    for (a, b), value in judgments.items():
+        if value <= 0:
+            raise ValueError(f"AHP judgment {a} vs {b} must be positive.")
+        i, j = CRITERIA.index(a), CRITERIA.index(b)
+        matrix[i, j] = value
+        matrix[j, i] = 1.0 / value
+    return matrix
+
+
+def ahp_weights(judgments: Dict[tuple, float]) -> AhpResult:
+    """Derive criteria weights and the consistency ratio from judgments."""
+    matrix = build_pairwise_matrix(judgments)
+    n = len(matrix)
+
+    eigenvalues, eigenvectors = np.linalg.eig(matrix)
+    principal = int(np.argmax(eigenvalues.real))
+    vector = np.abs(eigenvectors[:, principal].real)
+    weights = vector / vector.sum()
+
+    lambda_max = float(eigenvalues[principal].real)
+    ci = max(0.0, (lambda_max - n) / (n - 1)) if n > 1 else 0.0
+    ri = RANDOM_INDEX.get(n, 1.49)
+    cr = ci / ri if ri > 0 else 0.0
+
+    return AhpResult(
+        weights={c: float(w) for c, w in zip(CRITERIA, weights)},
+        lambda_max=lambda_max,
+        consistency_index=ci,
+        consistency_ratio=cr,
+    )
+
+
+def judgments(values: Iterable[float]) -> Dict[tuple, float]:
+    """Pair a list of judgments with CRITERIA_PAIRS, in order."""
+    values = list(values)
+    if len(values) != len(CRITERIA_PAIRS):
+        raise ValueError(f"Expected {len(CRITERIA_PAIRS)} AHP judgments.")
+    return dict(zip(CRITERIA_PAIRS, values))
+
+
+# Judgment order: strength/modulus, strength/density, strength/elongation,
+#                 modulus/density, modulus/elongation, density/elongation
 APPLICATIONS = {
     "1": {
         "name": "Aerospace",
-        "importance": {"strength": 9, "modulus": 10, "density": 10, "elongation": 6},
+        # Stiffness and weight dominate; elongation matters least.
+        "ahp_judgments": judgments([1/2, 1/2, 3, 1, 5, 5]),
         "use_terms": ["aerospace"],
     },
     "2": {
         "name": "Automotive / Motorsport",
-        "importance": {"strength": 8, "modulus": 8, "density": 9, "elongation": 7},
+        # Lightweighting leads; strength and stiffness balanced.
+        "ahp_judgments": judgments([1, 1/2, 2, 1/2, 2, 3]),
         "use_terms": ["motorsport", "automotive", "industrial"],
     },
     "3": {
         "name": "Pressure Vessel / Energy",
-        "importance": {"strength": 10, "modulus": 8, "density": 8, "elongation": 8},
+        # Burst strength dominates; other properties equal.
+        "ahp_judgments": judgments([3, 3, 3, 1, 1, 1]),
         "use_terms": ["pressure vessel", "energy", "industrial"],
     },
     "4": {
         "name": "Sporting Goods",
-        "importance": {"strength": 7, "modulus": 9, "density": 9, "elongation": 7},
+        # Stiff and light; strength and elongation secondary.
+        "ahp_judgments": judgments([1/3, 1/3, 1, 1, 3, 3]),
         "use_terms": ["sporting goods"],
     },
     "5": {
         "name": "Industrial",
-        "importance": {"strength": 8, "modulus": 7, "density": 7, "elongation": 6},
+        # Strength first; cost-driven so density matters less.
+        "ahp_judgments": judgments([2, 2, 3, 1, 2, 2]),
         "use_terms": ["industrial"],
     },
     "6": {
         "name": "Custom",
-        "importance": None,
+        "ahp_judgments": None,
         "use_terms": [],
     },
 }
@@ -156,9 +248,16 @@ def parse_tows(value: Any) -> set[int]:
 
 
 def ratio_score(value: float, target: float, higher_is_better: bool) -> float:
-    """Convert a requirement ratio into a bounded 0-100 preference score."""
-    if not np.isfinite(value) or not np.isfinite(target) or target <= 0:
+    """
+    Convert a requirement ratio into a bounded 0-100 preference score.
+
+    A target of 0 means "no requirement": any fiber with published data
+    satisfies it fully. Missing data returns NaN (scored 0 downstream).
+    """
+    if not np.isfinite(value) or not np.isfinite(target):
         return np.nan
+    if target <= 0:
+        return 100.0
     ratio = value / target
     if higher_is_better:
         return float(np.clip(ratio, 0.0, 1.5) / 1.5 * 100.0)
@@ -168,15 +267,35 @@ def ratio_score(value: float, target: float, higher_is_better: bool) -> float:
 
 
 def weighted_mean(values: Dict[str, float], weights: Dict[str, float]) -> float:
-    usable = {k: v for k, v in values.items() if np.isfinite(v)}
-    if not usable:
-        return np.nan
+    """
+    Weighted mean over ALL criteria; a missing value scores 0.
 
-    total_w = sum(weights[k] for k in usable)
+    Unpublished data is treated as "not demonstrated" rather than skipped:
+    averaging only the known values let a fiber with a single published
+    property (e.g. density) earn a perfect engineering score.
+    """
+    total_w = sum(weights[k] for k in values)
     if total_w <= 0:
         return np.nan
 
-    return sum(usable[k] * weights[k] for k in usable) / total_w
+    return sum(
+        (v if np.isfinite(v) else 0.0) * weights[k] for k, v in values.items()
+    ) / total_w
+
+
+def data_completeness(values: Dict[str, float]) -> float:
+    """Share of the engineering criteria with published data, 0-100."""
+    return 100.0 * sum(np.isfinite(v) for v in values.values()) / len(values)
+
+
+def tokens(text: Any) -> set[str]:
+    """Lower-case alphanumeric tokens, e.g. 'HexTow AS4C (Aerospace)' -> {hextow, as4c, aerospace}."""
+    return set(re.findall(r"[a-z0-9]+", norm(text)))
+
+
+def has_term(text: str, term: str) -> bool:
+    """Whole-word/phrase match, so 'pa' does not match inside 'capable'."""
+    return re.search(rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])", text) is not None
 
 
 def load_fiber_database() -> pd.DataFrame:
@@ -469,29 +588,31 @@ def grade_fit(row: pd.Series, application_name: str) -> float:
 
 
 def process_fit(row: pd.Series, process: Optional[str]) -> float:
-    if not process:
-        return 100.0
+    """
+    Fiber-level process suitability.
 
-    process_text = " ".join(
-        norm(row.get(col, ""))
-        for col in ["recommended_uses", "sizing_compatibility"]
-    )
-
-    tows = parse_tows(row.get("sizing_options", ""))
-
-    if process in {"weaving", "braiding"}:
-        return 100.0 if tows & {3, 6, 12, 24} else 55.0
-
-    if process == "thin prepreg tape":
-        return 100.0 if tows & {3, 6} else 70.0
-
-    if process in {"prepreg tape", "filament winding", "heavy stitched/woven"}:
-        return 100.0 if tows & {12, 24} else 65.0
+    Only filament winding and pultrusion depend on the FIBER itself (heavy
+    tows / an explicit pultrusion grade). For RTM, infusion, autoclave, OOA
+    and press molding, suitability is decided by the resin or prepreg, which
+    are ranked separately — so fibers stay neutral (100) instead of all
+    receiving the same arbitrary 70.
+    """
+    if process == "filament winding":
+        tows = parse_tows(row.get("sizing_options", ""))
+        return 100.0 if tows & {12, 24, 48, 50} else 65.0
 
     if process == "pultrusion":
+        process_text = " ".join(
+            norm(row.get(col, ""))
+            for col in ["recommended_uses", "sizing_compatibility"]
+        )
         return 100.0 if "pultrusion" in process_text else 60.0
 
-    return 70.0
+    return 100.0
+
+
+# Hexcel epoxy-compatible sizing codes (e.g. "GP", "GS", "G").
+EPOXY_SIZING_CODES = re.compile(r"(?<![a-z0-9])(gp|gs|g)(?![a-z0-9])")
 
 
 def fiber_matrix_fit(row: pd.Series, matrix: Optional[str]) -> float:
@@ -504,10 +625,10 @@ def fiber_matrix_fit(row: pd.Series, matrix: Optional[str]) -> float:
     if matrix == "thermoplastic":
         return 100.0 if "unsized" in sizing or "thermoplastic" in compatibility else 45.0
 
-    if matrix in compatibility:
+    if has_term(compatibility, matrix.lower()):
         return 100.0
 
-    if matrix == "epoxy" and any(s in sizing for s in ["gp", "gs", " g", "g"]):
+    if matrix == "epoxy" and EPOXY_SIZING_CODES.search(sizing):
         return 95.0
 
     return 60.0
@@ -544,7 +665,7 @@ def process_database_score(value: Any, process: Optional[str]) -> float:
     }
 
     terms = aliases.get(process, [process])
-    if any(term in text for term in terms):
+    if any(has_term(text, term.lower()) for term in terms):
         return 100.0
 
     # Unknown/non-explicit suitability is not treated as incompatible.
@@ -570,7 +691,7 @@ def matrix_database_score(value: Any, matrix: Optional[str]) -> float:
     }
 
     terms = aliases.get(matrix, [matrix])
-    if any(term in text for term in terms):
+    if any(has_term(text, term.lower()) for term in terms):
         return 100.0
 
     return 50.0
@@ -619,21 +740,21 @@ def build_prepreg_results(
     if candidates.empty:
         return pd.DataFrame()
 
-    selected_products = set(
-        norm(x) for x in selected_fibers.get("Product", pd.Series(dtype=str)).tolist()
-    )
-    selected_ids = set(
-        norm(x) for x in selected_fibers.get("Fiber_ID", pd.Series(dtype=str)).tolist()
-    )
+    # Token sets of the selected fibers' product names, e.g. {hextow, as4c}.
+    # Matching whole tokens keeps grade "AS4" from claiming fiber "AS4C".
+    selected_tokens = [
+        tokens(x) for x in selected_fibers.get("Product", pd.Series(dtype=str)).tolist()
+    ]
 
     records = []
     for _, row in candidates.iterrows():
-        fiber_grade = norm(row.get("fiber_grade", ""))
-        fiber_mfr = norm(row.get("fiber_manufacturer", ""))
+        grade_tokens = tokens(row.get("fiber_grade", ""))
 
-        exact_match = any(
-            fiber_grade and (fiber_grade in sid or fiber_grade in product)
-            for sid, product in zip(selected_ids, selected_products)
+        # A single-token grade (AS4, IM7, T800S) must appear as a whole token
+        # in a selected product. Descriptive entries such as
+        # "T1100-series IM+ commonly paired" are not explicit grade matches.
+        exact_match = len(grade_tokens) == 1 and any(
+            grade_tokens <= product for product in selected_tokens
         )
 
         proc_score = process_database_score(row.get("process_suitability", ""), req.process)
@@ -800,19 +921,52 @@ def print_system_database_results(
             )
 
 
-def engineering_score(row: pd.Series, req: Requirements, app: dict) -> float:
-    values = {
+def engineering_components(row: pd.Series, req: Requirements) -> Dict[str, float]:
+    return {
         "strength": ratio_score(row["tensile_strength_mpa"], req.strength_mpa, True),
         "modulus": ratio_score(row["tensile_modulus_gpa"], req.modulus_gpa, True),
         "elongation": ratio_score(row["ultimate_elongation_percent"], req.elongation_percent, True),
         "density": ratio_score(row["fiber_density_g_cm3"], req.max_density_g_cm3, False),
     }
 
+
+def engineering_score(row: pd.Series, req: Requirements, app: dict) -> float:
     weights = {
         key: val / sum(app["importance"].values())
         for key, val in app["importance"].items()
     }
-    return weighted_mean(values, weights)
+    return weighted_mean(engineering_components(row, req), weights)
+
+
+def lamina_columns(row: pd.Series) -> dict:
+    """
+    0-degree UD lamina properties for a fiber: published values when the
+    literature has them (NCAMP measured preferred), otherwise an estimate
+    from lamina_estimator calibrated on published fiber/lamina pairs.
+    """
+    published = lamina_estimator.published_lamina(row["fiber_id"])
+    if published:
+        return {
+            "Lamina_Xt_MPa": published["lamina_tensile_strength_mpa"],
+            "Lamina_E1_GPa": published["lamina_tensile_modulus_gpa"],
+            "Lamina_Basis": f"published ({published['source_type']}, {published['resin']})",
+            "Lamina_Source": published["source_document"],
+        }
+
+    model = lamina_estimator.calibrated_model()
+    if model is None:
+        return {"Lamina_Xt_MPa": np.nan, "Lamina_E1_GPa": np.nan,
+                "Lamina_Basis": "", "Lamina_Source": ""}
+
+    est = model.estimate(row["tensile_strength_mpa"], row["tensile_modulus_gpa"])
+    return {
+        "Lamina_Xt_MPa": round(est["Xt_MPa"], 0),
+        "Lamina_E1_GPa": round(est["E1_GPa"], 1),
+        "Lamina_Basis": (f"estimate ~60% Vf epoxy (±{model.strength_rmse_mpa:.0f} MPa, "
+                         f"±{model.modulus_rmse_gpa:.0f} GPa; n={model.n_points})"
+                         + (" — EXTRAPOLATED beyond calibration range" if est["extrapolated"] else "")),
+        "Lamina_Source": "lamina_estimator.py calibrated on literature_data/",
+    }
 
 
 def build_ranked_results(df: pd.DataFrame, req: Requirements, app: dict) -> pd.DataFrame:
@@ -855,6 +1009,7 @@ def build_ranked_results(df: pd.DataFrame, req: Requirements, app: dict) -> pd.D
             "Fiber_Class": row.get("fiber_class", ""),
             "Certification": row.get("certification", ""),
             "Engineering_Score": round(eng, 2),
+            "Data_Completeness_percent": round(data_completeness(engineering_components(row, req)), 0),
             "Application_Fit": round(app_score, 2),
             "Grade_Fit": round(grade_score_value, 2),
             "Process_Fit": round(proc, 2),
@@ -864,6 +1019,7 @@ def build_ranked_results(df: pd.DataFrame, req: Requirements, app: dict) -> pd.D
             "Source_File": row.get("source_file", ""),
             "Source_URL": row.get("source_url", ""),
             "Data_Status": row.get("fiber_data_status", ""),
+            **lamina_columns(row),
         })
 
     result = pd.DataFrame(records).sort_values("Final_Score", ascending=False).reset_index(drop=True)
@@ -910,20 +1066,94 @@ def print_results(result: pd.DataFrame, req: Requirements, app: dict, all_fibers
             f"Process: {r['Process_Fit']:.1f} | "
             f"Matrix: {r['Matrix_Fit']:.1f}"
         )
+        if r["Data_Completeness_percent"] < 100:
+            print(
+                f"  Data completeness: {r['Data_Completeness_percent']:.0f}% — "
+                f"unpublished properties score 0"
+            )
         print(f"  Fiber class: {r['Fiber_Class']}")
         print(f"  Sizing: {r['Tow_or_Sizing']}")
         print(f"  Certification: {r['Certification'] or 'Not stated'}")
+        if pd.notna(r.get("Lamina_Xt_MPa")):
+            print(
+                f"  UD lamina 0°: Xt {r['Lamina_Xt_MPa']:.0f} MPa | "
+                f"E1 {r['Lamina_E1_GPa']:.0f} GPa — {r['Lamina_Basis']}"
+            )
 
 
 def ask_float(prompt: str, minimum: float = 0.0) -> float:
     while True:
         try:
             value = float(input(prompt))
-            if value < minimum:
+            if not np.isfinite(value) or value < minimum:
                 raise ValueError
             return value
         except ValueError:
             print(f"Enter a number >= {minimum}.")
+
+
+def ask_choice(prompt: str, options: dict) -> str:
+    """Repeat until the answer is one of the menu keys."""
+    while True:
+        choice = input(prompt).strip()
+        if choice in options:
+            return choice
+        print(f"Choose one of: {', '.join(options)}.")
+
+
+def ask_judgment(a: str, b: str) -> float:
+    """Ask one AHP pairwise judgment; accepts 1-9 or reciprocals like 1/3."""
+    prompt = (
+        f"{a.capitalize()} vs {b.capitalize()} "
+        f"[1-9 if {a} is more important, 1/2-1/9 if {b} is]: "
+    )
+    while True:
+        text = input(prompt).strip().replace(" ", "")
+        try:
+            if "/" in text:
+                num, den = text.split("/", 1)
+                value = float(num) / float(den)
+            else:
+                value = float(text)
+            if 1 / 9 - 1e-9 <= value <= 9 + 1e-9:
+                return value
+        except (ValueError, ZeroDivisionError):
+            pass
+        print("Enter a value from 1 to 9, or a reciprocal such as 1/3.")
+
+
+def ask_custom_judgments() -> Dict[tuple, float]:
+    """Ask all pairwise judgments, repeating until they are consistent."""
+    print("\nAHP PAIRWISE COMPARISON (Saaty scale)")
+    print("1 = equal, 3 = moderate, 5 = strong, 7 = very strong, 9 = extreme")
+
+    while True:
+        values = {(a, b): ask_judgment(a, b) for a, b in CRITERIA_PAIRS}
+        result = ahp_weights(values)
+        if result.consistent:
+            return values
+
+        print(
+            f"\nInconsistent judgments: CR = {result.consistency_ratio:.3f} "
+            f"(must be < {CR_THRESHOLD:.2f})."
+        )
+        if not ask_yes_no("Re-enter the comparisons? "):
+            print("Proceeding with inconsistent weights — treat results with caution.")
+            return values
+
+
+def print_ahp_weights(app_name: str, result: AhpResult) -> None:
+    print("\n" + "=" * 70)
+    print(f"AHP IMPORTANCE WEIGHTS — {app_name}")
+    print("=" * 70)
+    for criterion in CRITERIA:
+        weight = result.weights[criterion]
+        print(f"  {criterion.capitalize():<12} {weight:6.3f}  {'#' * round(weight * 40)}")
+    status = "consistent" if result.consistent else "INCONSISTENT"
+    print(
+        f"  lambda_max = {result.lambda_max:.3f} | CI = {result.consistency_index:.3f} "
+        f"| CR = {result.consistency_ratio:.3f} ({status}, threshold {CR_THRESHOLD:.2f})"
+    )
 
 
 def ask_yes_no(prompt: str) -> bool:
@@ -953,26 +1183,22 @@ def main() -> None:
     for key, value in APPLICATIONS.items():
         print(f"{key}. {value['name']}")
 
-    choice = input("Choose application: ").strip()
-    while choice not in APPLICATIONS:
-        choice = input("Choose a valid option: ").strip()
+    choice = ask_choice("Choose application: ", APPLICATIONS)
 
     app = APPLICATIONS[choice].copy()
 
     if choice == "6":
-        print("\nCUSTOM IMPORTANCE (1-10)")
-        app["importance"] = {
-            "strength": ask_float("Strength importance: ", 1),
-            "modulus": ask_float("Modulus importance: ", 1),
-            "density": ask_float("Density importance: ", 1),
-            "elongation": ask_float("Elongation importance: ", 1),
-        }
+        app["ahp_judgments"] = ask_custom_judgments()
+
+    ahp = ahp_weights(app["ahp_judgments"])
+    app["importance"] = ahp.weights
+    print_ahp_weights(app["name"], ahp)
 
     print("\nENGINEERING REQUIREMENTS")
     req = Requirements(
         strength_mpa=ask_float("Minimum tensile strength (MPa): "),
         modulus_gpa=ask_float("Minimum tensile modulus (GPa): "),
-        max_density_g_cm3=ask_float("Maximum density (g/cm³): "),
+        max_density_g_cm3=ask_float("Maximum density (g/cm³): ", 0.01),
         elongation_percent=ask_float("Minimum elongation (%): "),
         hard_strength=ask_yes_no("Strength is HARD? "),
         hard_modulus=ask_yes_no("Modulus is HARD? "),
@@ -986,12 +1212,12 @@ def main() -> None:
     print("\nPROCESS")
     for key, name in PROCESS_OPTIONS.items():
         print(f"{key}. {name or 'No process preference'}")
-    req.process = PROCESS_OPTIONS.get(input("Choose process: ").strip())
+    req.process = PROCESS_OPTIONS[ask_choice("Choose process: ", PROCESS_OPTIONS)]
 
     print("\nMATRIX")
     for key, name in MATRIX_OPTIONS.items():
         print(f"{key}. {name or 'No matrix preference'}")
-    req.matrix = MATRIX_OPTIONS.get(input("Choose matrix: ").strip())
+    req.matrix = MATRIX_OPTIONS[ask_choice("Choose matrix: ", MATRIX_OPTIONS)]
 
     req.require_certification = ask_yes_no(
         "\nRequire an explicitly stated certification? "
@@ -1021,4 +1247,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (EOFError, KeyboardInterrupt):
+        print("\nCancelled — no input received.")
+        raise SystemExit(1)
