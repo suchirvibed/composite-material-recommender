@@ -23,7 +23,7 @@ are unchanged.
 - Data-completeness column; unit tests (`tests/`); `requirements.txt`; docs.
 
 ### Data
-- `sizing_compatibility` filled for 14 Toray grades (T300, T700S, T700G,
+- `sizing_compatibility` filled for 13 Toray grades (T300, T700S, T700G,
   T800H, T800S, T1000G, T1100S, T1100G, M35J, M40J, M46J, M55J, M60J) from
   each grade's official Toray data sheet, with revision and URL recorded in
   `source_file` / `source_url`.
