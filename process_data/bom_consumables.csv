@@ -1,0 +1,17 @@
+item,specification,basis_quantity,inr_low,inr_high,scaling,sandwich_only
+Carbon fibre epoxy prepreg,Aerospace-grade carbon/epoxy,~4 m² total skins,6000,8000,area,no
+Nomex/aramid honeycomb core,"20 mm, aerospace grade",1 m²,4500,6500,area,yes
+Film adhesive,For skin-core bonding,~1 m² × 2 faces,2000,4000,area,yes
+Peel ply / release fabric,Surface preparation / separation,~2.5 m²,625,1250,area,no
+Perforated release film,Allows resin/vacuum flow,~1.5-2 m²,300,800,area,no
+Bleeder fabric,Absorbs excess resin,~1.5-2 m²,225,600,area,no
+Breather fabric,Vacuum/air distribution,~1.5-2 m²,300,800,area,no
+Vacuum bagging film,High-temperature bag,~2-2.5 m²,1000,2500,area,no
+Sealant tape,Vacuum sealing,~5-7 m,500,1400,perimeter,no
+Vacuum connector / port,Vacuum connection,1-2 nos.,500,1500,per_panel,no
+Vacuum hose,High-temperature hose,~3-5 m,900,3000,per_panel,no
+Release agent,Mould preparation,consumable,300,700,per_panel,no
+Thermocouples,Temperature monitoring,2-4 nos.,600,2800,per_panel,no
+Edge dams / caul strips,Control laminate/core geometry,1 set,500,1500,perimeter,no
+Inserts / hard points,If required,as required,1000,5000,per_panel,no
+Cutting / trimming allowance,Prepreg & core wastage (5-15 %),~5-15 %,1000,2500,area,no

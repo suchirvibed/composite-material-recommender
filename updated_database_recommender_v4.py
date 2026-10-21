@@ -28,8 +28,10 @@ It does not replace engineering qualification.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import combinations
 from pathlib import Path
 import re
+import sys
 from typing import Any, Dict, Iterable, Optional
 
 import numpy as np
@@ -522,13 +524,104 @@ def print_constraint_diagnostics(df: pd.DataFrame, req: Requirements) -> None:
                 )
             print(f"  • {d['requirement']}: {explanation}")
 
+        print_closest(df, req)
         print("\nSUGGESTION:")
         print(
             "Relax one of the constraints marked ✗, change it from HARD "
             "to PREFERRED, or verify that the requested value/unit is correct."
         )
-    else:
-        print("\nAll HARD constraints have at least one qualifying candidate.")
+        return
+
+    # Every HARD limit passes on its own, so the empty result comes from a
+    # COMBINATION of limits, or from the certification filter.
+    conflict = smallest_conflict(df, req)
+    if conflict:
+        print("\nWHY NO CANDIDATE QUALIFIED:")
+        print(
+            f"  • Each HARD limit is met by some fiber, but no fiber meets "
+            f"{' + '.join(conflict)} together."
+        )
+    elif req.require_certification:
+        print("\nWHY NO CANDIDATE QUALIFIED:")
+        print(
+            "  • Fibers meet all HARD limits, but none of them has an "
+            "explicitly stated certification."
+        )
+
+    print_closest(df, req)
+    print("\nSUGGESTION:")
+    print(
+        "Relax one of the limits above, change it from HARD to PREFERRED, "
+        "or turn off the certification requirement."
+    )
+
+
+def print_closest(df: pd.DataFrame, req: Requirements) -> None:
+    closest = closest_candidate(df, req)
+    if closest:
+        print(f"\nCLOSEST FIBER: {closest['name']}")
+        for miss in closest["misses"]:
+            print(f"  • {miss}")
+
+
+HARD_CHECKS = [
+    # name, column, Requirements field, higher_is_better, unit
+    ("Strength", "tensile_strength_mpa", "strength_mpa", True, "MPa"),
+    ("Modulus", "tensile_modulus_gpa", "modulus_gpa", True, "GPa"),
+    ("Density", "fiber_density_g_cm3", "max_density_g_cm3", False, "g/cm³"),
+    ("Elongation", "ultimate_elongation_percent", "elongation_percent", True, "%"),
+]
+
+
+def _passes(df: pd.DataFrame, req: Requirements, name: str) -> pd.Series:
+    _, col, field, higher, _ = next(c for c in HARD_CHECKS if c[0] == name)
+    values, threshold = df[col], getattr(req, field)
+    return values.notna() & ((values >= threshold) if higher else (values <= threshold))
+
+
+def smallest_conflict(df: pd.DataFrame, req: Requirements) -> list[str]:
+    """Smallest set of HARD limits that no single fiber satisfies together."""
+    hard = [c[0] for c in HARD_CHECKS if getattr(req, f"hard_{c[0].lower()}")]
+    for size in range(2, len(hard) + 1):
+        for combo in combinations(hard, size):
+            mask = pd.Series(True, index=df.index)
+            for name in combo:
+                mask &= _passes(df, req, name)
+            if not mask.any():
+                return list(combo)
+    return []
+
+
+def closest_candidate(df: pd.DataFrame, req: Requirements) -> Optional[dict]:
+    """Fiber that misses the HARD limits by the smallest total relative margin."""
+    hard = [c for c in HARD_CHECKS if getattr(req, f"hard_{c[0].lower()}")]
+    if not hard or df.empty:
+        return None
+
+    shortfall = pd.Series(0.0, index=df.index)
+    for name, col, field, higher, _ in hard:
+        threshold = getattr(req, field)
+        if threshold <= 0:
+            continue
+        gap = (threshold - df[col]) if higher else (df[col] - threshold)
+        shortfall += (gap.clip(lower=0) / threshold).fillna(np.inf)
+
+    best = shortfall.idxmin()
+    if not np.isfinite(shortfall[best]):
+        return None
+
+    row = df.loc[best]
+    misses = []
+    for name, col, field, higher, unit in hard:
+        threshold, value = getattr(req, field), row[col]
+        if (higher and value < threshold) or (not higher and value > threshold):
+            misses.append(
+                f"{name}: {value:g} {unit} vs required "
+                f"{'≥' if higher else '≤'} {threshold:g} {unit}"
+            )
+    if req.require_certification and not clean_text(row.get("certification", "")):
+        misses.append("No explicitly stated certification")
+    return {"name": f"{row['manufacturer']} {row['product']}", "misses": misses}
 
 
 def numerical_filter(df: pd.DataFrame, req: Requirements) -> pd.DataFrame:
@@ -802,12 +895,11 @@ def build_prepreg_results(
             "Data_Status": row.get("data_status", ""),
         })
 
-    result = pd.DataFrame(records).sort_values(
-        ["Final_Score", "Fiber_Match_Score"], ascending=False
-    ).reset_index(drop=True)
-
-    result["Rank"] = np.arange(1, len(result) + 1)
-    return result
+    return rank_and_mark_ties(
+        pd.DataFrame(records),
+        by=["Final_Score", "Fiber_Match_Score", "Manufacturer", "Product_System", "Prepreg_ID"],
+        ascending=[False, False, True, True, True],
+    )
 
 
 def build_resin_results(resins: pd.DataFrame, req: Requirements) -> pd.DataFrame:
@@ -869,26 +961,87 @@ def build_resin_results(resins: pd.DataFrame, req: Requirements) -> pd.DataFrame
             "Data_Status": row.get("data_status", ""),
         })
 
-    result = pd.DataFrame(records).sort_values("Final_Score", ascending=False).reset_index(drop=True)
+    return rank_and_mark_ties(
+        pd.DataFrame(records),
+        by=["Final_Score", "Manufacturer", "Product_System", "Resin_ID"],
+        ascending=[False, True, True, True],
+    )
+
+
+def rank_and_mark_ties(df: pd.DataFrame, by: list[str], ascending: list[bool]) -> pd.DataFrame:
+    """
+    Sort with explicit tie-breakers (stable), number the ranks, and record
+    which other ranks share the exact same Final_Score, so equal candidates
+    are shown as tied instead of in an arbitrary order.
+    """
+    result = df.sort_values(by, ascending=ascending, kind="mergesort").reset_index(drop=True)
     result["Rank"] = np.arange(1, len(result) + 1)
+    groups = result.groupby("Final_Score")["Rank"].apply(list)
+    result["Tied_With"] = [
+        ", ".join(f"#{r}" for r in groups[score] if r != rank)
+        for score, rank in zip(result["Final_Score"], result["Rank"])
+    ]
     return result
+
+
+def tie_note(row: pd.Series) -> str:
+    tied = row.get("Tied_With")
+    if not tied:
+        return ""
+    others = tied.split(", ")
+    if len(others) <= 3:
+        return f" (tied with {tied})"
+    return f" (tied with {len(others)} others)"
+
+
+LIQUID_RESIN_PROCESSES = {"VARTM / infusion", "RTM", "filament winding", "pultrusion"}
+PREPREG_PROCESSES = {"autoclave", "OOA / VBO", "press / compression molding"}
+
+
+def system_coverage(prepregs: pd.DataFrame, resins: pd.DataFrame,
+                    process: Optional[str] = None, matrix: Optional[str] = None) -> tuple[int, int]:
+    """How many prepregs / resins survive the process and matrix filters alone."""
+    probe = Requirements(0, 0, 99, 0, False, False, False, False, process, matrix, False)
+    return (len(build_prepreg_results(prepregs, probe, pd.DataFrame())),
+            len(build_resin_results(resins, probe)))
+
+
+def coverage_label(prepregs, resins, process=None, matrix=None) -> str:
+    n_pre, n_res = system_coverage(prepregs, resins, process, matrix)
+    label = f"[{n_pre} / {n_res}]"
+    return label + ("  — none in database" if n_pre == n_res == 0 else "")
+
+
+def empty_reason(kind: str, req: Optional[Requirements]) -> str:
+    """Plain explanation for an empty prepreg or resin list."""
+    if req is not None and kind == "prepreg" and req.process in LIQUID_RESIN_PROCESSES:
+        return (f"{req.process} uses liquid resin, not prepreg — "
+                f"see the resin list below.")
+    if req is not None and kind == "resin" and req.process in PREPREG_PROCESSES:
+        return (f"{req.process} uses prepreg, not a separate liquid resin — "
+                f"see the prepreg list above.")
+    if req is not None and req.matrix:
+        return (f"The database has no {req.matrix} {kind}s matching these filters "
+                f"(data gap, not an incompatibility).")
+    return f"No {kind} candidates match the selected filters."
 
 
 def print_system_database_results(
     prepreg_results: pd.DataFrame,
     resin_results: pd.DataFrame,
+    req: Optional[Requirements] = None,
 ) -> None:
     print("\n" + "=" * 70)
     print("PREPREG DATABASE RECOMMENDATIONS")
     print("=" * 70)
 
     if prepreg_results.empty:
-        print("No prepreg candidates match the selected process/matrix filters.")
+        print(empty_reason("prepreg", req))
     else:
         for _, r in prepreg_results.head(5).iterrows():
             print(
                 f"#{int(r['Rank'])} {r['Manufacturer']} {r['Product_System']} "
-                f"— {r['Final_Score']:.1f}/100"
+                f"— {r['Final_Score']:.1f}/100{tie_note(r)}"
             )
             print(
                 f"  Matrix: {r['Matrix']} | Fiber: {r['Fiber_Manufacturer']} "
@@ -904,12 +1057,12 @@ def print_system_database_results(
     print("=" * 70)
 
     if resin_results.empty:
-        print("No resin candidates match the selected process/matrix filters.")
+        print(empty_reason("resin", req))
     else:
         for _, r in resin_results.head(5).iterrows():
             print(
                 f"#{int(r['Rank'])} {r['Manufacturer']} {r['Product_System']} "
-                f"— {r['Final_Score']:.1f}/100"
+                f"— {r['Final_Score']:.1f}/100{tie_note(r)}"
             )
             print(
                 f"  Family: {r['Resin_Family']} | Process: {r['Process_Suitability']} | "
@@ -917,7 +1070,7 @@ def print_system_database_results(
             )
             print(
                 f"  Viscosity: {r['Viscosity']} {r['Viscosity_Unit']} | "
-                f"Qualification: {r['Qualification'] or 'Not stated'}"
+                f"Qualification: {clean_text(r['Qualification']) or 'Not stated'}"
             )
 
 
@@ -959,12 +1112,22 @@ def lamina_columns(row: pd.Series) -> dict:
                 "Lamina_Basis": "", "Lamina_Source": ""}
 
     est = model.estimate(row["tensile_strength_mpa"], row["tensile_modulus_gpa"])
+    if est["extrapolated"]:
+        # Outside the published data the fit was made on (e.g. high-modulus
+        # and pitch fibers): a number here would look precise but isn't.
+        s_lo, s_hi = model.strength_range_mpa
+        m_lo, m_hi = model.modulus_range_gpa
+        return {
+            "Lamina_Xt_MPa": np.nan, "Lamina_E1_GPa": np.nan,
+            "Lamina_Basis": (f"no reliable estimate — fiber is outside the calibrated range "
+                             f"({s_lo:.0f}-{s_hi:.0f} MPa, {m_lo:.0f}-{m_hi:.0f} GPa)"),
+            "Lamina_Source": "",
+        }
     return {
         "Lamina_Xt_MPa": round(est["Xt_MPa"], 0),
         "Lamina_E1_GPa": round(est["E1_GPa"], 1),
         "Lamina_Basis": (f"estimate ~60% Vf epoxy (±{model.strength_rmse_mpa:.0f} MPa, "
-                         f"±{model.modulus_rmse_gpa:.0f} GPa; n={model.n_points})"
-                         + (" — EXTRAPOLATED beyond calibration range" if est["extrapolated"] else "")),
+                         f"±{model.modulus_rmse_gpa:.0f} GPa; n={model.n_points})"),
         "Lamina_Source": "lamina_estimator.py calibrated on literature_data/",
     }
 
@@ -1022,10 +1185,14 @@ def build_ranked_results(df: pd.DataFrame, req: Requirements, app: dict) -> pd.D
             **lamina_columns(row),
         })
 
-    result = pd.DataFrame(records).sort_values("Final_Score", ascending=False).reset_index(drop=True)
+    result = rank_and_mark_ties(
+        pd.DataFrame(records),
+        by=["Final_Score", "Engineering_Score", "Data_Completeness_percent",
+            "Manufacturer", "Product"],
+        ascending=[False, False, False, True, True],
+    )
 
     if not result.empty:
-        result["Rank"] = np.arange(1, len(result) + 1)
         result["Relative_Score_percent"] = (
             100.0 * result["Final_Score"] / result["Final_Score"].max()
         ).round(1)
@@ -1052,7 +1219,7 @@ def print_results(result: pd.DataFrame, req: Requirements, app: dict, all_fibers
     for _, r in result.head(5).iterrows():
         print(
             f"\n#{int(r['Rank'])} {r['Manufacturer']} {r['Product']} "
-            f"— {r['Relative_Score_percent']:.1f}%"
+            f"— {r['Relative_Score_percent']:.1f}%{tie_note(r)}"
         )
         print(
             f"  Strength: {r['Strength_MPa']:.0f} MPa | "
@@ -1073,12 +1240,14 @@ def print_results(result: pd.DataFrame, req: Requirements, app: dict, all_fibers
             )
         print(f"  Fiber class: {r['Fiber_Class']}")
         print(f"  Sizing: {r['Tow_or_Sizing']}")
-        print(f"  Certification: {r['Certification'] or 'Not stated'}")
+        print(f"  Certification: {clean_text(r['Certification']) or 'Not stated'}")
         if pd.notna(r.get("Lamina_Xt_MPa")):
             print(
                 f"  UD lamina 0°: Xt {r['Lamina_Xt_MPa']:.0f} MPa | "
                 f"E1 {r['Lamina_E1_GPa']:.0f} GPa — {r['Lamina_Basis']}"
             )
+        elif r.get("Lamina_Basis"):
+            print(f"  UD lamina 0°: {r['Lamina_Basis']}")
 
 
 def ask_float(prompt: str, minimum: float = 0.0) -> float:
@@ -1209,15 +1378,22 @@ def main() -> None:
         require_certification=False,
     )
 
-    print("\nPROCESS")
+    print("\nPROCESS   [prepregs / resins in the database for this choice]")
     for key, name in PROCESS_OPTIONS.items():
-        print(f"{key}. {name or 'No process preference'}")
+        print(f"{key}. {name or 'No process preference':<30} {coverage_label(prepregs, resins, process=name)}")
     req.process = PROCESS_OPTIONS[ask_choice("Choose process: ", PROCESS_OPTIONS)]
 
-    print("\nMATRIX")
+    print("\nMATRIX    [prepregs / resins in the database for this choice]")
     for key, name in MATRIX_OPTIONS.items():
-        print(f"{key}. {name or 'No matrix preference'}")
+        print(f"{key}. {name or 'No matrix preference':<30} {coverage_label(prepregs, resins, matrix=name)}")
     req.matrix = MATRIX_OPTIONS[ask_choice("Choose matrix: ", MATRIX_OPTIONS)]
+
+    n_pre, n_res = system_coverage(prepregs, resins, req.process, req.matrix)
+    if n_pre == 0 and n_res == 0:
+        print(
+            "\nNote: the database has no prepregs or resins for this "
+            "process + matrix combination. Fibers will still be ranked."
+        )
 
     req.require_certification = ask_yes_no(
         "\nRequire an explicitly stated certification? "
@@ -1238,7 +1414,7 @@ def main() -> None:
     prepreg_result = build_prepreg_results(prepregs, req, result.head(5))
     resin_result = build_resin_results(resins, req)
 
-    print_system_database_results(prepreg_result, resin_result)
+    print_system_database_results(prepreg_result, resin_result, req)
 
     print(
         "\nNOTE: A prepreg/resin appearing here is a database-level candidate, "
@@ -1247,6 +1423,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # Windows consoles/redirects default to cp1252, which cannot encode ✓ ✗ • ≥;
+    # print them as UTF-8 instead of crashing with UnicodeEncodeError.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     try:
         main()
     except (EOFError, KeyboardInterrupt):

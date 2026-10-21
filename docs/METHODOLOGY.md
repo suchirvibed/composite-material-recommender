@@ -77,17 +77,77 @@ grade "AS4" does not match "AS4C".
 Parts are made from laminas (fiber + resin), not bare fibers. For each
 recommended fiber the engine shows 0° unidirectional lamina properties:
 
-1. **Published** values when available (NCAMP measured preferred over
-   manufacturer datasheets) — see `literature_data/SOURCES.md`.
-2. Otherwise an **estimate** calibrated by least squares on 16 published
-   fiber/lamina pairs (≈60 % fiber volume, structural epoxy):
-   - E<sub>1</sub> = 0.634 · E<sub>fiber</sub> − 13.8 GPa
-   - X<sub>t</sub> = 0.489 · σ<sub>fiber</sub>
-   Estimates outside the calibration range are flagged **EXTRAPOLATED**.
+1. **Published** values when available (NCAMP measured, then MIL-HDBK-17-2F
+   measured, then manufacturer datasheets) — see `literature_data/SOURCES.md`.
+2. Otherwise an **estimate** calibrated by least squares on 27 published
+   fiber/lamina pairs (≈60 % fiber volume; epoxy, BMI, PEEK and cyanate-ester
+   matrices; fiber modulus 230–540 GPa):
+   - E<sub>1</sub> = 0.631 · E<sub>fiber</sub> − 13.3 GPa
+   - X<sub>t</sub> = 0.476 · σ<sub>fiber</sub>
+   Fibers outside the calibrated strength/modulus range get **no number**
+   ("no reliable estimate") rather than an extrapolation.
 
 Compression and interlaminar shear are deliberately not estimated: they
-depend on resin and interface, and do not track fiber tensile properties
-(Spearman ρ = 0.56 and 0.12).
+depend on resin and interface, and track fiber tensile strength only weakly
+(Spearman ρ = 0.66 and 0.12).
+
+## 4a. Mold (tool) material selector
+
+Implements the project's *Matrix Engine Report* in four stages.
+
+**Inputs** — part envelope L×W×H, geometry (flat / curved / angled with corner
+angle and UD/QI layup), cure temperature, pressure and ramp, part CTE
+(carbon/epoxy ≈ 2 µm/m·°C), tolerance (target or HARD), cycle count, ₹ cost
+ceiling, Class-A requirement, autoclave envelope, application profile.
+
+**Feasibility gate** (pass/fail, every rejection explained): tool service
+temperature ≥ cure + 20 °C; cycle life ≥ required cycles; lower cost estimate
+≤ ceiling; δ ≤ tolerance when HARD; Class-A capability; part fits the
+autoclave. Unknown limits pass with a "verify" flag.
+
+**Engineering calculation** per survivor:
+
+| Index | Formula | Basis |
+|---|---|---|
+| CTE mismatch error | δ = \|α_tool(T) − α_part\| · ΔT · L | Matrix Engine Report; Invar uses its mean-CTE curve (1.30 → 2.11 → 4.18 µm/m·°C at 93/149/260 °C) |
+| Thermal lag | τ = ρ·c_p·t / h; lag = ramp · τ; Biot = h·t/k checked < 0.1 | lumped tool; h interpolated from measured means 37 (oven), 99 (3 bar), 138 W/m²K (7 bar) — Fisher et al. 2022 |
+| Tool mass | M = ρ · L · W · t | face only, default thickness per class |
+| Durability | cycle-life class → minimum cycles | tooling report |
+| Cost | ₹/~1 m² × area | project BOM document |
+| Corner spring-in | Δθ = Δθ₉₀ · θ/90, Δθ₉₀ = 0.90° (UD) / 1.28° (QI) | Albert & Fernlund 2002 Eq. 1 (T800H/3900-2, 180 °C); tool angle opened by Δθ as a starting compensation |
+
+**Scoring** — direction-aware min-max across survivors
+(benefit: n = (x − min)/(max − min); cost: n = (max − x)/(max − min)),
+S = Σ wᵢ nᵢ. Weights come from AHP pairwise judgments per profile
+(prototype: cost 0.64; production: δ, lag and durability 0.26 each;
+aerospace: δ 0.61), all CR < 0.01. A missing value scores 0 ("not
+demonstrated"). Each weight is perturbed ±20 %; if the winner changes the
+result is reported as a close call with the top two.
+
+**DOE pairing** — the best-ranked low-CTE arm (Invar or CFRP tooling) and
+high-CTE arm (aluminium or mild steel) for the project's tool-material study
+(Master Report §3.3).
+
+## 4b. Cure-cycle planner
+
+Cycles are taken only from project documents (HexPly M18/1 monolithic,
+sandwich and alternative cycles; the ANSYS aluminium-mould demonstration
+cycle; HexTool M61 tool cure). Each ramp lasts |ΔT|/rate, each hold its stated
+time (the same arithmetic as the project's ANSYS parameter calculation, which
+the planner reproduces to the second). The selected tool's time constant τ
+extends the final hold by τ·ln(lag/5 °C), because cure time starts when the
+lagging thermocouple reaches cure temperature (Hexcel Prepreg Technology).
+It warns on pressures outside the documented range, sandwich parts on a
+monolithic (high-pressure) cycle, and tools whose service limit is below the
+cure peak; it exports the ANSYS convection table as CSV.
+
+## 4c. BOM & cost estimator
+
+The 16 consumable rows of the project BOM (1 m² sandwich basis) scale with
+panel area, perimeter (sealant, edge dams) or per panel (ports, hoses,
+thermocouples, inserts); core and film adhesive are dropped for monolithic
+panels. DOE scenarios use one mould per condition reused for that condition's
+panels (Master Report §5.5) with mould ₹ ranges from the BOM document.
 
 ## 5. Weight evaluation and learning
 

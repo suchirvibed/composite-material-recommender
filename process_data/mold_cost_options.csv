@@ -1,0 +1,8 @@
+mould_type,inr_low,inr_high,tool_life,best_use,tool_material_id
+MDF / low-cost pattern,20000,50000,Very low,Prototype / very low temperature,
+PU tooling board,50000,100000,Low-medium,Prototype,
+Epoxy tooling board,100000,200000,Medium-high,Accurate prototype / low volume,BOARD_EPOXY_HT
+Composite tooling,100000,250000,Medium-high,Repeated production,CFRP_BMI
+Aluminium mould,100000,300000,High,Production,AL6061
+Invar mould,300000,800000,Very high,Aerospace / tight dimensional control,INVAR36
+Mild steel mould,3000,13000,High,Production (cost UNVERIFIED - confirm),STEEL_MILD

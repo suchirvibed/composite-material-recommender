@@ -113,6 +113,47 @@ class TestScoring(unittest.TestCase):
         self.assertEqual(list(result["Rank"]), list(range(1, len(result) + 1)))
 
 
+class TestDiagnosticsAndTies(unittest.TestCase):
+    def test_combined_limits_are_identified(self):
+        fibers = v4.load_fiber_database()
+        req = soft_requirements(modulus_gpa=459, max_density_g_cm3=1.84,
+                                hard_modulus=True, hard_density=True)
+        self.assertTrue(v4.build_ranked_results(fibers, req, aerospace_app()).empty)
+        self.assertEqual(v4.smallest_conflict(fibers, req), ["Modulus", "Density"])
+        closest = v4.closest_candidate(fibers, req)
+        self.assertIn("M55J", closest["name"])
+        self.assertTrue(any("Density" in m for m in closest["misses"]))
+
+    def test_no_conflict_when_results_exist(self):
+        fibers = v4.load_fiber_database()
+        req = soft_requirements(strength_mpa=4000, hard_strength=True)
+        self.assertEqual(v4.smallest_conflict(fibers, req), [])
+
+    def test_identical_fibers_marked_tied_and_ordered(self):
+        fibers = v4.load_fiber_database()
+        result = v4.build_ranked_results(fibers, soft_requirements(), aerospace_app())
+        top = result.head(2)
+        self.assertEqual(list(top["Product"]), ["T1100G", "T1100S"])   # name tie-break
+        self.assertEqual(top.iloc[0]["Tied_With"], "#2")
+        self.assertEqual(top.iloc[1]["Tied_With"], "#1")
+        again = v4.build_ranked_results(fibers, soft_requirements(), aerospace_app())
+        self.assertEqual(list(result["Product"]), list(again["Product"]))
+
+    def test_coverage_and_empty_reasons(self):
+        prepregs, resins = v4.load_prepreg_database(), v4.load_resin_database()
+        self.assertEqual(v4.system_coverage(prepregs, resins, matrix="thermoplastic"), (0, 0))
+        self.assertEqual(v4.system_coverage(prepregs, resins, process="RTM")[0], 0)
+        self.assertIn("liquid resin", v4.empty_reason("prepreg", soft_requirements(process="RTM")))
+        self.assertIn("data gap", v4.empty_reason("resin", soft_requirements(matrix="phenolic")))
+
+    def test_extrapolated_lamina_shows_no_number(self):
+        fibers = v4.load_fiber_database()
+        m60j = fibers[fibers["product"] == "M60J"].iloc[0]          # 588 GPa: outside calibration
+        cols = v4.lamina_columns(m60j)
+        self.assertTrue(np.isnan(cols["Lamina_Xt_MPa"]))
+        self.assertIn("no reliable estimate", cols["Lamina_Basis"])
+
+
 class TestTextMatching(unittest.TestCase):
     def test_epoxy_sizing_needs_real_code(self):
         row = pd.Series({"sizing_compatibility": "", "sizing_options": "sizing types 4, 5"})

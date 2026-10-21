@@ -4,17 +4,41 @@ All numbers are reproducible with the commands shown (fixed random seeds).
 
 ## Lamina estimator — `py evaluate_lamina_model.py 100`
 
-Leave-one-out cross-validation on 16 published fiber/lamina pairs:
+Leave-one-out cross-validation on 27 published fiber/lamina pairs
+(2 NCAMP, 11 MIL-HDBK-17-2F, 14 manufacturer datasheets):
 
 | Target | Model | RMSE | MAE | MAPE | R² |
 |---|---|---|---|---|---|
-| E1 [GPa] | textbook rule of mixtures | 7.97 | 6.50 | 4.5 % | 0.83 |
-| E1 [GPa] | **calibrated** | **5.47** | **4.69** | **3.1 %** | **0.92** |
-| Xt [MPa] | textbook rule of mixtures | 626 | 582 | 23.4 % | −1.10 |
-| Xt [MPa] | **calibrated** | **221** | **163** | **6.5 %** | **0.74** |
+| E1 [GPa] | textbook rule of mixtures | 10.33 | 8.03 | 5.8 % | 0.93 |
+| E1 [GPa] | **calibrated** | **8.23** | **5.77** | **4.0 %** | **0.96** |
+| Xt [MPa] | textbook rule of mixtures | 659 | 613 | 27.7 % | −0.96 |
+| Xt [MPa] | **calibrated** | **237** | **178** | **8.0 %** | **0.75** |
 
-100-resample bootstrap 95 % intervals: E1 slope 0.634 [0.545, 0.706];
-strength efficiency 0.489 [0.473, 0.508].
+100-resample bootstrap 95 % intervals: E1 slope 0.631 [0.517, 0.662];
+strength efficiency 0.476 [0.461, 0.491]. Adding MIL-HDBK data (BMI, PEEK,
+cyanate ester, and the 540 GPa M55J) raised the modulus R² from 0.92 to 0.96
+and extended the valid range to high-modulus fibers; strength MAPE rose from
+6.5 % to 8.0 % because resin choice drives strength.
+
+## Mold selector — `py validation_cases.py`
+
+| Case | Documented choice | Engine |
+|---|---|---|
+| V1 2 m close-tolerance aerospace skin, 1000 cycles | Invar | Invar ✓ |
+| V2 low-rate motorsport, tight tolerance, cost-driven | CFRP tooling | CFRP ✓ |
+| V3 Class-A surface | Electroformed nickel; composite/board excluded | Nickel ✓ |
+| V4 180 °C cure | 130 °C board rejected | rejected ✓ |
+| V5 2 m tool, 1 mm HARD tolerance | aluminium (≈6.5 mm mismatch) rejected | rejected ✓ |
+| V6 project 1 m² DOE | low-CTE + high-CTE arm | Invar + mild steel ✓ |
+
+Physics reproduces the Matrix Engine Report worked check (2 m, ΔT 155 °C):
+steel 3.10 mm, aluminium 6.70 mm (report 6.5 mm with α = 23), Invar 0.21 mm
+(report 0.16 mm with a constant 1.5 µm/m·°C; the datasheet curve gives 2.69 at 180 °C).
+
+## Cure planner
+
+Reproduces the project ANSYS parameter calculation exactly: heating end
+3,321.43 s, hold end 14,121.43 s, cycle end 17,442.86 s (4 h 50 min 43 s).
 
 Datasheet vs independent NCAMP measurement (same fiber, same resin):
 
@@ -24,7 +48,7 @@ Datasheet vs independent NCAMP measurement (same fiber, same resin):
 | IM7 | 2723 vs 2501 MPa (+8.9 %) | 164 vs 158 GPa (+3.5 %) |
 
 Fiber ranking carries over to the lamina for stiffness and tensile strength
-(Spearman ρ = 0.85 and 0.90), but not for compression (0.56) or ILSS (0.12).
+(Spearman ρ = 0.75 and 0.89), weakly for compression (0.66) and not for ILSS (0.12).
 The resin matters: T700S and T700G share a fiber strength of 4900 MPa but
 their published laminas differ by 40 % (2860 vs 2040 MPa).
 

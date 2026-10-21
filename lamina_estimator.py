@@ -33,7 +33,7 @@ BASE_DIR = Path(__file__).resolve().parent
 CALIBRATION_FILE = BASE_DIR / "literature_data" / "lamina_calibration_data.csv"
 FIBER_FILE = BASE_DIR / "Carbon_Fiber_Master_v6_Top5(1).csv"
 
-SOURCE_PRIORITY = {"NCAMP_measured": 0, "manufacturer_datasheet": 1}
+SOURCE_PRIORITY = {"NCAMP_measured": 0, "MIL-HDBK-17_measured": 1, "manufacturer_datasheet": 2}
 
 
 @dataclass

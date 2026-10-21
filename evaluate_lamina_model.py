@@ -51,6 +51,8 @@ def leave_one_out(data: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
 
 
 def spearman(a, b) -> float:
+    # Positional arrays: a pandas Series would align on its (gappy) index.
+    a, b = np.asarray(a, dtype=float), np.asarray(b, dtype=float)
     return float(pd.Series(a).rank().corr(pd.Series(b).rank()))
 
 
@@ -99,7 +101,8 @@ def main() -> None:
 
     # 3. Datasheet vs independent NCAMP measurement
     print("\n3) Manufacturer datasheet vs NCAMP measured (same fiber, same resin)")
-    both = data.groupby("fiber_id").filter(lambda g: g["source_type"].nunique() > 1)
+    both = data.groupby("fiber_id").filter(
+        lambda g: {"manufacturer_datasheet", "NCAMP_measured"} <= set(g["source_type"]))
     for fid, g in both.groupby("fiber_id"):
         ds = g[g["source_type"] == "manufacturer_datasheet"].iloc[0]
         nc = g[g["source_type"] == "NCAMP_measured"].iloc[0]

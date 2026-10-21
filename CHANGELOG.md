@@ -1,5 +1,69 @@
 # Changelog
 
+## v5.0 — finalised decision tool (built from the project documents)
+
+### Added
+- **`app.py` + `run.bat`**: one menu program — fiber recommender, mold
+  selector, cure planner, BOM/cost, full project report (saved to
+  `reports/`), validation cases, data sources. Defaults on Enter, re-asks
+  invalid input.
+- **Mold (tool) material selector** (`mold_selector.py`, `ahp.py`) per the
+  *Matrix Engine Report*: feasibility gate with rejection reasons, CTE
+  mismatch δ (Invar temperature-dependent CTE), thermal lag from measured
+  autoclave HTCs (Fisher et al. 2022), tool mass, cycle life, ₹ cost, corner
+  spring-in compensation (Albert & Fernlund 2002), three AHP profiles, ±20 %
+  weight sweep with close-call flag, DOE low/high-CTE pairing, report card.
+- **Tool-material database (D1)** `tooling_data/tool_materials.csv`: 9
+  materials, every value sourced (`tooling_data/SOURCES.md`).
+- **Validation set (D6)** `validation_cases.py`: 6 documented industry
+  choices, all reproduced.
+- **Cure-cycle planner** (`cure_planner.py`): documented cycles only,
+  reproduces the project ANSYS calculation, tool-lag hold extension,
+  sandwich-pressure and tool-temperature checks, ANSYS table export.
+- **BOM & cost estimator** (`cost_estimator.py`): project BOM rows scaled by
+  area/perimeter/panel, DOE scenarios, Indian number formatting.
+- **MIL-HDBK-17-2F lamina data**: 11 measured systems (AS4, T300, IM6, M55J;
+  epoxy, BMI, PEEK, cyanate ester) → lamina model now 27 points, modulus R²
+  0.96, valid to 540 GPa.
+- `docs/DATA_ISSUES.md`: arithmetic slips and gaps found in the project
+  documents; 23 new tests (52 total).
+
+### Fixed
+- Lamina evaluator Spearman correlations misaligned rows by index after the
+  dataset grew (ILSS showed −0.60 instead of +0.12).
+
+### Tuned
+- Weight-learning rate 0.3 → **3.0** (`LEARN_RATE`). A 100-trial sweep of
+  learning rate (0.3 / 1 / 3) × L2 (0.05 / 0.01 / 0.001), confirmed on 100
+  fresh trials, gave identical metrics for every rate; 3.0 converges in ~100
+  instead of ~1600 iterations (100-trial evaluation 13 s → 1.8 s). L2 stays
+  0.05: lower values only trade aerospace AUC (+0.03) for worse industrial
+  AUC and RMSE. Accuracy cannot rise above the label base rate (aerospace
+  0.80) with manufacturer-use labels — see docs/RESULTS.md.
+
+## v4.2 — findings from a 1000-run random stress test
+
+### Fixed
+- "No results" diagnostics now find the smallest *combination* of HARD
+  limits that conflicts (e.g. modulus ≥ 459 GPa + density ≤ 1.84 g/cm³),
+  explain certification-caused empties, and name the closest fiber and its
+  shortfall. Previously 8.6 % of runs ended with "All HARD constraints have at
+  least one qualifying candidate" and no explanation.
+- Equal scores are ordered by fixed tie-breakers (engineering score, data
+  completeness, name) and labelled "(tied with #n)" for fibers, prepregs and
+  resins; rankings are repeatable.
+- Process and matrix menus show how many prepregs / resins the database holds
+  for each option and warn when there are none; empty prepreg/resin lists
+  explain why (e.g. "RTM uses liquid resin, not prepreg").
+- Lamina estimates outside the calibrated fiber range (24 high-modulus and
+  pitch fibers) are withheld instead of shown as an extrapolated number.
+- "Certification: nan" / "Qualification: nan" now read "Not stated".
+- Diagnostics no longer crash with UnicodeEncodeError when output is
+  redirected on Windows (cp1252).
+
+### Performance
+- Weight learning loop ~1.8× faster with bit-identical results.
+
 Changes relative to the original upload (`rohv1713-sudo/ProductRecommendationAI`,
 commit `7d92b84`). Work focuses on v4; v1, v2, v5, v6 and `recommendv2.py`
 are unchanged.
