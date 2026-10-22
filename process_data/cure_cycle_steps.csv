@@ -1,0 +1,133 @@
+cycle_id,phase,step,kind,target_C,rate_lo,rate_hi,min_lo,min_hi,pressure_bar,vacuum_bar,event,basis
+HEX_8552_EU_MONO,cure,1,ramp,110,1,3,,,7.0,-0.2,"full vacuum, then 7 bar; vacuum reduced to 0.2 bar at ~1 bar gauge",stated
+HEX_8552_EU_MONO,cure,2,hold,,,,55,65,7.0,-0.2,hold 110 ± 5 °C,stated
+HEX_8552_EU_MONO,cure,3,ramp,180,1,3,,,7.0,-0.2,,stated
+HEX_8552_EU_MONO,cure,4,hold,,,,115,125,7.0,-0.2,hold 180 ± 5 °C,stated
+HEX_8552_EU_MONO,cure,5,cool,60,2,5,,,7.0,-0.2,vent autoclave pressure at ≤ 60 °C,stated
+HEX_8552_EU_SAND,cure,1,ramp,110,1,3,,,3.2,-0.2,"full vacuum, then 3.2 bar; vacuum reduced to 0.2 bar at ~1 bar gauge",stated
+HEX_8552_EU_SAND,cure,2,hold,,,,55,65,3.2,-0.2,hold 110 ± 5 °C,stated
+HEX_8552_EU_SAND,cure,3,ramp,180,1,3,,,3.2,-0.2,,stated
+HEX_8552_EU_SAND,cure,4,hold,,,,115,125,3.2,-0.2,hold 180 ± 5 °C,stated
+HEX_8552_EU_SAND,cure,5,cool,60,2,5,,,3.2,-0.2,vent autoclave pressure at ≤ 60 °C,stated
+HEX_8552_US,cure,1,ramp,107.2,1.67,2.78,,,1.03,-1.0,full vacuum and 15 psig,stated
+HEX_8552_US,cure,2,hold,,,,30,60,1.03,-1.0,hold 225 °F,stated
+HEX_8552_US,cure,3,ramp,176.7,1.67,2.78,,,6.38,0.0,raise to 85-100 psig; vent vacuum at 30 psig,ramp rate to 350 °F not restated — 3-5 °F/min of step 2 used
+HEX_8552_US,cure,4,hold,,,,110,130,6.38,0.0,"hold 350 °F, 120 ± 10 min",stated
+HEX_8552_US,cure,5,cool,65.6,1.11,2.78,,,6.38,0.0,vent pressure at 150 °F,stated
+HEX_M21_THIN,cure,1,ramp,180,1,2,,,7.0,-0.2,"full vacuum, then 7 bar; vacuum to -0.2 bar at ~1 bar gauge",stated
+HEX_M21_THIN,cure,2,hold,,,,115,125,7.0,-0.2,hold 180 ± 5 °C,stated
+HEX_M21_THIN,cure,3,cool,60,2,5,,,7.0,-0.2,vent at ≤ 60 °C,stated
+HEX_M21_THICK,cure,1,ramp,150,0.5,1,,,7.0,-0.2,"full vacuum, then 7 bar; vacuum to -0.2 bar at ~1 bar gauge",stated
+HEX_M21_THICK,cure,2,hold,,,,175,185,7.0,-0.2,hold 150 ± 5 °C,stated
+HEX_M21_THICK,cure,3,ramp,180,0.5,1,,,7.0,-0.2,,stated
+HEX_M21_THICK,cure,4,hold,,,,115,125,7.0,-0.2,hold 180 ± 5 °C,stated
+HEX_M21_THICK,cure,5,cool,60,2,5,,,7.0,-0.2,vent at ≤ 60 °C,stated
+HEX_M21_SAND,cure,1,ramp,135,1,2,,,0.0,-0.3,"max -0.3 bar vacuum, no autoclave pressure",stated
+HEX_M21_SAND,cure,2,hold,,,,55,65,0.0,-0.3,hold 135 ± 5 °C,stated
+HEX_M21_SAND,cure,3,ramp,180,1,2,,,2.5,0.0,apply 2-3 bar (core density); remove vacuum at ~1 bar gauge,stated
+HEX_M21_SAND,cure,4,hold,,,,115,125,2.5,0.0,hold 180 ± 5 °C,stated
+HEX_M21_SAND,cure,5,cool,60,2,5,,,2.5,0.0,vent at ≤ 60 °C,stated
+HEX_913,cure,1,ramp,125,2,8,,,7.0,,,stated
+HEX_913,cure,2,hold,,,,60,60,7.0,,hold 125 °C,stated
+HEX_913,cure,3,cool,25.0,2.0,3.0,,,7.0,,,cooling not stated — assumed
+HEX_913_150,cure,1,ramp,150,2,8,,,7.0,,,pressure and rate of the main cycle assumed
+HEX_913_150,cure,2,hold,,,,20,20,7.0,,hold 150 °C,stated
+HEX_913_150,cure,3,cool,25.0,2.0,3.0,,,7.0,,,cooling not stated — assumed
+HEX_M56_OVEN_MONO,cure,1,ramp,110,1,3,,,0.0,-0.95,full vacuum (-0.95 bar),stated
+HEX_M56_OVEN_MONO,cure,2,hold,,,,55,65,0.0,-0.95,hold 110 ± 5 °C,stated
+HEX_M56_OVEN_MONO,cure,3,ramp,180,1,3,,,0.0,-0.5,reduce vacuum to -0.5 bar,stated
+HEX_M56_OVEN_MONO,cure,4,hold,,,,120,150,0.0,-0.5,"hold 180 ± 5 °C, 120 +30/-0 min",stated
+HEX_M56_OVEN_MONO,cure,5,cool,60,2.78,2.78,,,0.0,-0.5,cool under vacuum; release below 140 °F,stated
+HEX_M56_OVEN_SAND,cure,1,ramp,110,1,3,,,0.0,-0.95,full vacuum (-0.95 bar),stated
+HEX_M56_OVEN_SAND,cure,2,hold,,,,55,65,0.0,-0.95,hold 110 ± 5 °C,stated
+HEX_M56_OVEN_SAND,cure,3,ramp,180,1,3,,,0.0,-0.95,,stated
+HEX_M56_OVEN_SAND,cure,4,hold,,,,120,150,0.0,-0.95,"hold 180 ± 5 °C, 120 +30/-0 min",stated
+HEX_M56_OVEN_SAND,cure,5,cool,60,2.78,2.78,,,0.0,-0.95,cool under vacuum; release below 140 °F,stated
+M18-1_MONO,cure,1,ramp,80,2,2,,,5.5,-0.8,"4-7 bar, -0.8 bar vacuum",stated
+M18-1_MONO,cure,2,hold,,,,60,60,5.5,-0.8,hold 80 °C — flow and air removal,stated
+M18-1_MONO,cure,3,ramp,180,2,2,,,5.5,-0.8,,stated
+M18-1_MONO,cure,4,hold,,,,120,120,5.5,-0.8,hold 180 °C,stated
+M18-1_MONO,cure,5,cool,25.0,2,2,,,5.5,-0.8,,'cool at a controlled rate' — 2 °C/min assumed
+M18-1_SAND,cure,1,ramp,80,2,2,,,2.0,-0.8,"2 bar, -0.8 bar vacuum",stated
+M18-1_SAND,cure,2,hold,,,,60,60,2.0,-0.8,hold 80 °C — flow and air removal,stated
+M18-1_SAND,cure,3,ramp,180,2,2,,,2.0,-0.8,,stated
+M18-1_SAND,cure,4,hold,,,,120,120,2.0,-0.8,hold 180 °C,stated
+M18-1_SAND,cure,5,cool,25.0,2,2,,,2.0,-0.8,,'cool at a controlled rate' — 2 °C/min assumed
+M18-1_ALT,cure,1,ramp,120,1.0,3.0,,,0.0,-0.8,vacuum only,ramp not stated — assumed
+M18-1_ALT,cure,2,hold,,,,120,120,0.0,-0.8,hold 120 °C,stated
+M18-1_ALT,cure,3,ramp,180,1.0,3.0,,,0.0,-0.8,,ramp not stated — assumed
+M18-1_ALT,cure,4,hold,,,,120,120,0.0,-0.8,hold 180 °C,stated
+M18-1_ALT,cure,5,cool,25.0,2.0,3.0,,,0.0,-0.8,,cooling not stated — assumed
+HEXTOOL_M61,cure,1,ramp,190,1.0,3.0,,,7.0,,,ramp not stated — assumed
+HEXTOOL_M61,cure,2,hold,,,,240,240,7.0,,hold 190 °C,stated
+HEXTOOL_M61,cure,3,cool,25.0,2.0,3.0,,,7.0,,,cooling not stated — assumed
+HEXTOOL_M61,postcure,1,ramp,220,1.0,3.0,,,,,,free-standing post-cure; ramp assumed
+HEXTOOL_M61,postcure,2,hold,,,,960,960,,,post-cure 16 h at 220 °C to develop full Tg,stated
+HEXTOOL_M61,postcure,3,cool,25.0,2.0,3.0,,,,,,assumed
+NCAMP_5320-1_C,cure,1,hold,25.0,,,240,240,0.0,-0.95,"pre-cure vacuum hold ≥ 28 inHg (4 h, ≤ 4 ft² panel)",stated
+NCAMP_5320-1_C,cure,2,ramp,121.1,0.56,2.78,,,0.0,-0.95,full vacuum,stated
+NCAMP_5320-1_C,cure,3,hold,,,,115,125,0.0,-0.95,"hold 250 °F, 120 ± 5 min",stated
+NCAMP_5320-1_C,cure,4,ramp,176.7,0.56,2.78,,,0.0,-0.95,,stated
+NCAMP_5320-1_C,cure,5,hold,,,,115,125,0.0,-0.95,"hold 350 °F, 120 ± 5 min (integrated post-cure)",stated
+NCAMP_5320-1_C,cure,6,cool,65.6,0.56,2.78,,,0.0,-0.95,cool below 150 °F,stated
+MIL_3501-6,cure,1,ramp,115.6,1.0,3.0,,,5.86,,,ramp not stated — assumed
+MIL_3501-6,cure,2,hold,,,,60,60,5.86,,hold 240 ± 10 °F,stated
+MIL_3501-6,cure,3,ramp,176.7,1.0,3.0,,,6.89,,raise to 100 ± 10 psig,ramp not stated — assumed
+MIL_3501-6,cure,4,hold,,,,110,130,6.89,,"hold 350 ± 10 °F, 120 ± 10 min",stated
+MIL_3501-6,cure,5,cool,25.0,2.0,3.0,,,6.89,,,cooling not stated — assumed
+MIL_3502,cure,1,ramp,137.8,1.0,3.0,,,5.86,,,ramp not stated — assumed
+MIL_3502,cure,2,hold,,,,90,90,5.86,,hold 280 ± 5 °F,stated
+MIL_3502,cure,3,ramp,176.7,1.0,3.0,,,5.86,,,ramp not stated — assumed
+MIL_3502,cure,4,hold,,,,120,120,5.86,,hold 350 °F,stated
+MIL_3502,cure,5,cool,25.0,2.0,3.0,,,5.86,,,cooling not stated — assumed
+MIL_976,cure,1,ramp,121.1,1.0,3.0,,,6.89,,,ramp not stated — assumed
+MIL_976,cure,2,hold,,,,45,45,6.89,,hold 250 °F,stated
+MIL_976,cure,3,ramp,176.7,1.0,3.0,,,6.89,,,ramp not stated — assumed
+MIL_976,cure,4,hold,,,,120,120,6.89,,hold 350 °F,stated
+MIL_976,cure,5,cool,25.0,2.0,3.0,,,6.89,,,cooling not stated — assumed
+MIL_3900-2,cure,1,ramp,176.7,1.67,1.67,,,5.86,,3 °F/min ramp rate,stated
+MIL_3900-2,cure,2,hold,,,,120,120,5.86,,"hold 350 °F, 2 h",stated
+MIL_3900-2,cure,3,cool,25.0,2.0,3.0,,,5.86,,,cooling not stated — assumed
+MIL_E7K8,cure,1,ramp,151.7,1.0,3.0,,,3.79,,,ramp not stated — assumed
+MIL_E7K8,cure,2,hold,,,,120,130,3.79,,hold 300-310 °F,stated
+MIL_E7K8,cure,3,cool,25.0,2.0,3.0,,,3.79,,,cooling not stated — assumed
+MIL_938,cure,1,ramp,176.7,1.0,3.0,,,6.89,,,ramp not stated — assumed
+MIL_938,cure,2,hold,,,,120,135,6.89,,hold 350 ± 10 °F,stated
+MIL_938,cure,3,cool,25.0,2.0,3.0,,,6.89,,,cooling not stated — assumed
+MIL_997,cure,1,ramp,176.7,1.0,3.0,,,5.86,,,ramp not stated — assumed
+MIL_997,cure,2,hold,,,,120,120,5.86,,"hold 350 °F, 2 h",stated
+MIL_997,cure,3,cool,25.0,2.0,3.0,,,5.86,,,cooling not stated — assumed
+MIL_954-3,cure,1,ramp,176.7,1.0,3.0,,,6.89,,,ramp not stated — assumed
+MIL_954-3,cure,2,hold,,,,120,120,6.89,,"hold 350 °F, 2 h",stated
+MIL_954-3,cure,3,cool,25.0,2.0,3.0,,,6.89,,,cooling not stated — assumed
+MIL_F650,cure,1,ramp,190.6,1.0,3.0,,,5.86,,,ramp not stated — assumed
+MIL_F650,cure,2,hold,,,,240,240,5.86,,"hold 375 °F, 4 h",stated
+MIL_F650,cure,3,cool,25.0,2.0,3.0,,,5.86,,,cooling not stated — assumed
+MIL_F650,postcure,1,ramp,246.1,1.0,3.0,,,,,,free-standing oven; ramp assumed
+MIL_F650,postcure,2,hold,,,,240,240,,,"post-cure 475 °F, 4 h, free-standing",stated
+MIL_F650,postcure,3,cool,25.0,2.0,3.0,,,,,,cooling not stated — assumed
+MIL_5250-3,cure,1,ramp,121.1,1.0,3.0,,,5.86,,,ramp not stated — assumed
+MIL_5250-3,cure,2,hold,,,,60,60,5.86,,hold 250 °F,stated
+MIL_5250-3,cure,3,ramp,176.7,1.0,3.0,,,5.86,,,ramp not stated — assumed
+MIL_5250-3,cure,4,hold,,,,360,360,5.86,,"hold 350 °F, 6 h",stated
+MIL_5250-3,cure,5,cool,25.0,2.0,3.0,,,5.86,,,cooling not stated — assumed
+MIL_5250-3,postcure,1,ramp,246.1,1.0,3.0,,,,,,ramp assumed
+MIL_5250-3,postcure,2,hold,,,,360,360,,,"post-cure 475 °F, 6 h",stated
+MIL_5250-3,postcure,3,cool,25.0,2.0,3.0,,,,,,cooling not stated — assumed
+MIL_APC-2,cure,1,ramp,382.2,1.0,3.0,,,4.14,,,ramp not stated — assumed
+MIL_APC-2,cure,2,hold,,,,30,45,4.14,,hold 720 °F (melt),stated
+MIL_APC-2,cure,3,cool,25.0,2.0,3.0,,,4.14,,,cooling not stated — assumed (crystallinity depends on it)
+MIL_F670,cure,1,ramp,226.7,1.0,3.0,,,,,,ramp not stated — assumed
+MIL_F670,cure,2,hold,,,,120,120,,,hold 440 °F,stated
+MIL_F670,cure,3,ramp,315.6,1.0,3.0,,,13.79,,,ramp not stated — assumed
+MIL_F670,cure,4,hold,,,,180,180,13.79,,"hold 600 °F, 3 h, 200 psig",stated
+MIL_F670,cure,5,cool,25.0,2.0,3.0,,,13.79,,,cooling not stated — assumed
+MIL_EA9396_VB,cure,1,ramp,91.9,1.0,3.0,,,0.0,-0.85,25 inHg vacuum,ramp not stated — assumed
+MIL_EA9396_VB,cure,2,hold,,,,45,45,0.0,-0.85,hold 195-200 °F,stated
+MIL_EA9396_VB,cure,3,cool,25.0,2.0,3.0,,,0.0,-0.85,,cooling not stated — assumed
+EC_OOA_80C,cure,1,ramp,80,10,10,,,0.0,-0.95,"pre-heated oven, full vacuum",no ramp — pre-heated oven (fast entry modelled as 10 °C/min)
+EC_OOA_80C,cure,2,hold,,,,600,600,0.0,-0.95,"hold 80 °C, 10 h",stated
+EC_OOA_80C,cure,3,cool,25.0,2.0,3.0,,,0.0,-0.95,,cooling not stated — assumed
+ANSYS_AL_DEMO,cure,1,ramp,180,2.8,2.8,,,,,,stated
+ANSYS_AL_DEMO,cure,2,hold,,,,180,180,,,"hold 180 °C, 3 h",stated
+ANSYS_AL_DEMO,cure,3,cool,25.0,2.8,2.8,,,,,,stated

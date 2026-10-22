@@ -131,23 +131,13 @@ def predict(article: StudyArticle, s: Dict[str, object], materials) -> tuple:
     calc = ms.calculate(tool, part)
 
     base = cp.get_cycle(article.cycle_id)
-    steps = []
-    for st in base.steps:
-        if st.kind == "ramp":
-            steps.append(cp.Step("ramp", rate_C_min=float(s["ramp"]), target_C=st.target_C))
-        elif st.kind == "hold" and st is [x for x in base.steps if x.kind == "hold"][-1]:
-            steps.append(cp.Step("hold", minutes=float(s["dwell"])))
-        else:
-            steps.append(st)
-    cycle = cp.CureCycle(base.cycle_id, base.product, base.part_type, steps,
-                         base.pressure_min, base.pressure_max, base.vacuum_bar,
-                         base.source, base.notes)
+    cycle = cp.with_overrides(base, ramp_C_min=float(s["ramp"]), final_hold_min=float(s["dwell"]))
     extension = cp.hold_extension_for_lag(calc.tau_min, float(s["ramp"])) or 0.0
     minutes = cp.total_minutes(cp.schedule(cycle, hold_extension_min=extension))
 
     if article.sandwich and float(s["pressure"]) > base.pressure_max:
         warnings.append(f"{s['pressure']:g} bar exceeds the {base.pressure_max:g} bar "
-                        f"sandwich limit (core crush risk, M18/1 datasheet)")
+                        f"sandwich limit of {base.product} (core crush risk)")
     if calc.tau_min is None:
         warnings.append("tool thermal lag unknown (supplier c_p needed)")
     if s["layup"] == "unbalanced":

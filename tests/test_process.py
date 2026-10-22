@@ -142,6 +142,78 @@ class TestCurePlanner(unittest.TestCase):
         self.assertTrue(any("core crush" in w for w in plan.warnings))
 
 
+class TestCureLibrary(unittest.TestCase):
+    """The 30 documented cycles and the richer step model."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cycles = {c.cycle_id: c for c in cp.load_cycles()}
+
+    def test_library_is_broad_and_sourced(self):
+        self.assertGreaterEqual(len(self.cycles), 30)
+        peaks = {round(c.peak_C) for c in self.cycles.values()}
+        self.assertTrue(min(peaks) <= 93 and max(peaks) >= 380)      # 80 °C OOA to 382 °C PEEK
+        for c in self.cycles.values():
+            self.assertTrue(c.source and c.location, c.cycle_id)
+            self.assertTrue(any(s.kind == "hold" for s in c.steps), c.cycle_id)
+
+    def test_band_is_ordered(self):
+        for c in self.cycles.values():
+            b = cp.duration_band(c)
+            self.assertLessEqual(b["fast"], b["nominal"] + 1e-9, c.cycle_id)
+            self.assertLessEqual(b["nominal"], b["slow"] + 1e-9, c.cycle_id)
+
+    def test_8552_eu_monolithic_matches_datasheet(self):
+        c = self.cycles["HEX_8552_EU_MONO"]
+        self.assertEqual([s.kind for s in c.steps], ["ramp", "hold", "ramp", "hold", "cool"])
+        self.assertEqual((c.steps[0].rate_lo, c.steps[0].rate_hi), (1.0, 3.0))
+        self.assertEqual(c.steps[1].target_C, None)
+        self.assertEqual(c.vent_C, 60.0)
+        self.assertEqual(c.pressure_max, 7.0)
+
+    def test_staged_pressure_and_vacuum_vent(self):
+        pts = cp.schedule(self.cycles["HEX_8552_US"])
+        self.assertLess(pts[1]["P_bar"], pts[3]["P_bar"])           # 15 psig, then 85-100 psig
+        self.assertEqual(pts[1]["V_bar"], -1.0)
+        self.assertEqual(pts[3]["V_bar"], 0.0)                      # vacuum vented
+        m21 = cp.schedule(self.cycles["HEX_M21_SAND"])
+        self.assertEqual(m21[2]["P_bar"], 0.0)                      # no pressure during the 135 °C hold
+        self.assertGreater(m21[3]["P_bar"], 0.0)
+
+    def test_documented_pressure_window(self):
+        self.assertFalse(any("outside" in w for w in cp.plan(self.cycles["M18-1_MONO"], pressure_bar=6).warnings))
+        self.assertTrue(any("outside" in w for w in cp.plan(self.cycles["M18-1_MONO"], pressure_bar=8).warnings))
+
+    def test_equipment_and_thickness_checks(self):
+        oven = cp.plan(self.cycles["HEX_8552_EU_MONO"], equipment="oven")
+        self.assertTrue(any("oven" in w for w in oven.warnings))
+        self.assertFalse(any("cannot run" in w for w in cp.plan(self.cycles["HEX_M56_OVEN_MONO"], equipment="oven").warnings))
+        thick = cp.plan(self.cycles["HEX_M21_THIN"], laminate_mm=20)
+        self.assertTrue(any("thick-part cycle" in w for w in thick.warnings))
+
+    def test_post_cure_and_assumptions(self):
+        bmi = cp.plan(self.cycles["MIL_F650"])
+        self.assertTrue(bmi.post_points)
+        self.assertAlmostEqual(self.cycles["MIL_F650"].post_peak_C, 246.1, places=1)
+        self.assertTrue(any(w.startswith("Assumption") for w in bmi.warnings))
+        self.assertFalse(any(w.startswith("Assumption") for w in cp.plan(self.cycles["HEX_8552_EU_MONO"]).warnings))
+
+    def test_overrides_for_doe(self):
+        c = cp.with_overrides(self.cycles["M18-1_SAND"], ramp_C_min=1.0, final_hold_min=180)
+        self.assertTrue(all(s.rate_lo == 1.0 for s in c.steps if s.kind == "ramp"))
+        self.assertEqual([s for s in c.steps if s.kind == "hold"][-1].min_lo, 180)
+        self.assertGreater(cp.total_minutes(cp.schedule(c)),
+                           cp.total_minutes(cp.schedule(self.cycles["M18-1_SAND"])))
+
+    def test_ansys_table_has_pressure_columns(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            path = cp.write_ansys_table(cp.schedule(self.cycles["HEX_8552_US"]), Path(tmp) / "t.csv")
+            header = path.read_text(encoding="utf-8").splitlines()[0]
+        self.assertIn("Autoclave pressure", header)
+        self.assertIn("Vacuum", header)
+
+
 class TestCostEstimator(unittest.TestCase):
     def test_per_m2_totals_from_document_rows(self):
         low, high = ce.total(ce.panel_bom())

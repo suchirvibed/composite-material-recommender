@@ -1,5 +1,27 @@
 # Changelog
 
+## v5.3 — documented cure-cycle library
+
+### Added
+- **30 cure cycles** (was 5, mostly M18/1) from Hexcel 8552 (EU/US), M21
+  (thin/thick/sandwich), 913, M56 (oven, OOA), M18/1, HexTool M61, the NCAMP
+  5320-1 process specification, 13 MIL-HDBK-17-2F processing lines (epoxies,
+  BMIs with post-cure, cyanate ester, APC-2 PEEK, polyimide, vacuum-bag
+  adhesive) and the EC out-of-autoclave guide — `process_data/SOURCES.md`.
+- **Richer step model**: ramp-rate and hold-time *ranges*, pressure and
+  vacuum per step (staged pressure, vacuum vents, late pressure on M21
+  sandwich), pre-cure vacuum holds, free-standing post-cures, vent
+  temperature, documented pressure window; every unstated value flagged.
+- **Planner**: cycle-time band (fast / nominal / slow), post-cure time,
+  checks for oven-vs-autoclave equipment, sandwich on a monolithic cycle,
+  laminate thickness vs a thin-part cycle, 913 exotherm dwell, tool rating,
+  assumptions; ANSYS table now carries pressure and vacuum columns.
+- **Cure tab**: filter by process / matrix / part type, readable cycle names,
+  details card, pressure-vacuum strip under the temperature chart, compare up
+  to 4 cycles; planning a cycle sets the study article's cycle and cure
+  temperature so the DOE follows it.
+- 9 tests (72 total).
+
 ## v5.1 — project-centred desktop tool
 
 ### Added

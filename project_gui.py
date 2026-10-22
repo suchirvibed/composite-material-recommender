@@ -142,6 +142,10 @@ class StudyApp(tk.Tk):
         self.material_names = {m.material_id: SHORT_NAMES.get(m.material_id, m.name)
                                for m in self.materials}
         self.material_ids = {name: mid for mid, name in self.material_names.items()}
+        self.cycles = cp.load_cycles()
+        self.label_by_cycle = {c.cycle_id: f"{c.product} · {c.part_type} · {c.process} · "
+                                           f"{c.peak_C:.0f} °C  [{c.cycle_id}]" for c in self.cycles}
+        self.cycle_by_label = {self.label_by_cycle[c.cycle_id]: c for c in self.cycles}
 
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill="both", expand=True, padx=8, pady=(8, 0))
@@ -216,10 +220,10 @@ class StudyApp(tk.Tk):
         self.a_ramp = self._field(form, 1, 2, "Heating ramp (°C/min)", 2.0)
         self.a_cte = self._field(form, 1, 4, "Part CTE (µm/m·°C)", 2.0)
         self.a_sandwich = self._check(form, 2, 0, "Honeycomb sandwich panel (20 mm Nomex core)", True)
-        cycles = [c.cycle_id for c in cp.load_cycles()]
-        self.a_cycle = self._combo(form, 2, 2, "Cure cycle", cycles, "M18-1_SAND", 16)
+        self.a_cycle = self._combo(form, 2, 2, "Cure cycle", list(self.cycle_by_label),
+                                   self.label_by_cycle["M18-1_SAND"], 40)
         ttk.Button(form, text="Reset to project study article",
-                   command=self._reset_article).grid(row=2, column=4, columnspan=2, sticky="w")
+                   command=self._reset_article).grid(row=3, column=0, columnspan=2, sticky="w", pady=(6, 0))
 
         ps = ttk.LabelFrame(t, text="Problem statements and where the tool answers them", padding=10)
         ps.pack(fill="x", pady=10)
@@ -247,7 +251,7 @@ class StudyApp(tk.Tk):
                            (self.a_press, 2.0), (self.a_ramp, 2.0), (self.a_cte, 2.0)]:
             var.set(str(value))
         self.a_sandwich.set(True)
-        self.a_cycle.set("M18-1_SAND")
+        self.a_cycle.set(self.label_by_cycle["M18-1_SAND"])
         self.status.set("Study article reset to the project's 1 m² sandwich panel.")
 
     def article(self) -> doe.StudyArticle:
@@ -256,7 +260,11 @@ class StudyApp(tk.Tk):
             sandwich=self.a_sandwich.get(), cure_temp_C=number(self.a_temp, "Cure temperature", 30),
             base_pressure_bar=number(self.a_press, "Cure pressure", 0),
             base_ramp_C_min=number(self.a_ramp, "Heating ramp", 0.1),
-            part_cte_ppm=number(self.a_cte, "Part CTE"), cycle_id=self.a_cycle.get())
+            part_cte_ppm=number(self.a_cte, "Part CTE"), cycle_id=self.a_cycle_id())
+
+    def a_cycle_id(self) -> str:
+        cycle = self.cycle_by_label.get(self.a_cycle.get())
+        return cycle.cycle_id if cycle else "M18-1_SAND"
 
     # ------------------------------------------------------------------
     # 1 Material system
@@ -432,86 +440,199 @@ class StudyApp(tk.Tk):
 
     def _cure_tab(self):
         t = self._tab("3 · Cure cycle (PS2)")
-        hint(t, "How long does the cycle take, and does the tool keep up? The air schedule comes "
-                "from the documented cycle; the tool curve is a lumped model (τ = ρ·c_p·t / h, "
-                "measured autoclave HTC). The final hold is extended until the lagging "
-                "thermocouple has had the full cure time.").pack(anchor="w")
-        form = ttk.Frame(t)
-        form.pack(fill="x", pady=6)
-        self.c_tool = self._combo(form, 0, 0, "Tool", list(self.material_names.values()), self.material_names["CFRP_BMI"], 26)
-        ttk.Button(form, text="Plan cure cycle", style="Run.TButton",
-                   command=lambda: self._guard(self._run_cure)).grid(row=0, column=2, padx=8)
-        ttk.Button(form, text="Export ANSYS convection table…",
-                   command=lambda: self._guard(self._export_ansys)).grid(row=0, column=3)
+        hint(t, "Which cure cycle, how long, and does the tool keep up? 30 documented cycles "
+                "(Hexcel datasheets, NCAMP, MIL-HDBK-17, project files) with their ramp ranges, "
+                "staged pressure and vacuum, vent temperature and post-cure. The tool curve is a "
+                "lumped model (τ = ρ·c_p·t / h); the final hold is extended for tool lag.").pack(anchor="w")
 
-        self.canvas = tk.Canvas(t, height=260, background="white", highlightthickness=1,
+        find = ttk.LabelFrame(t, text="Find a documented cycle", padding=6)
+        find.pack(fill="x", pady=(6, 2))
+        self.c_proc = self._combo(find, 0, 0, "Process", ["All", "autoclave", "oven (vacuum bag only)"], "All", 20)
+        self.c_matrix = self._combo(find, 0, 2, "Matrix", ["All", "epoxy", "BMI", "cyanate ester",
+                                                           "PEEK", "polyimide"], "All", 14)
+        self.c_part = self._combo(find, 0, 4, "Part", ["All", "monolithic", "sandwich", "tool"], "All", 12)
+        ttk.Label(find, text="Cycle").grid(row=1, column=0, sticky="w")
+        self.c_cycle = tk.StringVar()
+        self.c_cycle_box = ttk.Combobox(find, textvariable=self.c_cycle, state="readonly", width=92)
+        self.c_cycle_box.grid(row=1, column=1, columnspan=5, sticky="w", pady=2)
+        for var in (self.c_proc, self.c_matrix, self.c_part):
+            var.trace_add("write", lambda *_: self._refresh_cycles())
+
+        form = ttk.Frame(t)
+        form.pack(fill="x", pady=2)
+        self.c_tool = self._combo(form, 0, 0, "Tool", list(self.material_names.values()),
+                                  self.material_names["CFRP_BMI"], 24)
+        self.c_lam = self._field(form, 0, 2, "Laminate thickness (mm)", 2.0, 6)
+        self.c_equip = self._combo(form, 0, 4, "Equipment", ["autoclave", "oven"], "autoclave", 10)
+        bar = ttk.Frame(t)
+        bar.pack(fill="x", pady=4)
+        ttk.Button(bar, text="Plan cure cycle", style="Run.TButton",
+                   command=lambda: self._guard(self._run_cure)).pack(side="left")
+        ttk.Button(bar, text="Add to comparison",
+                   command=lambda: self._guard(self._add_comparison)).pack(side="left", padx=6)
+        ttk.Button(bar, text="Clear comparison", command=self._clear_comparison).pack(side="left")
+        ttk.Button(bar, text="Export ANSYS table…",
+                   command=lambda: self._guard(self._export_ansys)).pack(side="left", padx=6)
+        self.c_card = tk.StringVar()
+        ttk.Label(t, textvariable=self.c_card, foreground="#1d4f91", wraplength=1100,
+                  justify="left").pack(anchor="w")
+
+        self.canvas = tk.Canvas(t, height=330, background="white", highlightthickness=1,
                                 highlightbackground="#ccc")
         self.canvas.pack(fill="x", pady=4)
-        self.c_out = Output(t, 12)
+        self.c_out = Output(t, 9)
         self.c_out.pack(fill="both", expand=True)
+        self.comparison: list = []
+        self._refresh_cycles()
 
-    def _run_cure(self):
+    def _refresh_cycles(self):
+        proc, matrix, part = self.c_proc.get(), self.c_matrix.get(), self.c_part.get()
+        labels = [lbl for lbl, c in self.cycle_by_label.items()
+                  if (proc == "All" or c.process == proc)
+                  and (matrix == "All" or matrix.lower() in c.matrix.lower())
+                  and (part == "All" or part in c.part_type)]
+        self.c_cycle_box["values"] = labels
+        if self.c_cycle.get() not in labels:
+            current = self.label_by_cycle.get(self.a_cycle_id(), "")
+            self.c_cycle.set(current if current in labels else (labels[0] if labels else ""))
+
+    def _selected_cycle(self) -> cp.CureCycle:
+        cycle = self.cycle_by_label.get(self.c_cycle.get())
+        if cycle is None:
+            raise ValueError("No cycle matches the filters — set a filter back to 'All'.")
+        return cycle
+
+    def _cure_plan(self, cycle):
         a = self.article()
         tool = next(m for m in self.materials if m.material_id == self.material_ids[self.c_tool.get()])
-        part = ms.PartDefinition(length_m=a.length_m, width_m=a.width_m, cure_temp_C=a.cure_temp_C,
-                                 cure_pressure_bar=a.base_pressure_bar, ramp_rate_C_min=a.base_ramp_C_min)
+        first_ramp = next((s for s in cycle.steps if s.kind == "ramp"), None)
+        ramp = first_ramp.rate() if first_ramp else a.base_ramp_C_min
+        part = ms.PartDefinition(length_m=a.length_m, width_m=a.width_m, cure_temp_C=cycle.peak_C,
+                                 cure_pressure_bar=cycle.pressure_max, ramp_rate_C_min=ramp)
         calc = ms.calculate(tool, part)
-        cycle = cp.get_cycle(a.cycle_id)
-        self.plan = cp.plan(cycle, pressure_bar=a.base_pressure_bar, sandwich=a.sandwich,
-                            tool_max_service_C=tool.max_service_C, tool_tau_min=calc.tau_min,
-                            tool_name=tool.name)
+        plan = cp.plan(cycle, sandwich=a.sandwich, tool_max_service_C=tool.max_service_C,
+                       tool_tau_min=calc.tau_min, tool_name=tool.name,
+                       laminate_mm=number(self.c_lam, "Laminate thickness", 0.1),
+                       equipment=self.c_equip.get())
+        return plan, calc
+
+    def _run_cure(self):
+        cycle = self._selected_cycle()
+        self.plan, calc = self._cure_plan(cycle)
+        # The study article follows the planned cycle, so the DOE uses the same cure.
+        self.a_cycle.set(self.label_by_cycle[cycle.cycle_id])
+        self.a_temp.set(f"{cycle.peak_C:g}")
         text = cp.plan_text(self.plan)
         self.c_out.show(text)
         self.sections["3 Cure cycle (PS2)"] = text
+        b = self.plan.band
+        vac = "none" if cycle.vacuum_bar is None else f"{cycle.vacuum_bar:g} bar"
+        self.c_card.set(
+            f"{cycle.product} · {cycle.matrix} · {cycle.process} · {cycle.part_type}  |  "
+            f"pressure {cp.pressure_text(cycle)}, vacuum {vac}"
+            + (f", vent ≤ {cycle.vent_C:.0f} °C" if cycle.vent_C else "")
+            + f"  |  cycle {b['fast']:.0f} / {b['nominal']:.0f} / {b['slow']:.0f} min (fast / nominal / slow)"
+            + (f"  |  + post-cure {cp.total_minutes(self.plan.post_points):.0f} min to "
+               f"{cycle.post_peak_C:.0f} °C" if self.plan.post_points else "")
+            + f"\nSource: {cycle.source} — {cycle.location}")
         self._draw_cycle(self.plan.points, calc.tau_min)
-        self.status.set(f"Cure plan: {cp.total_minutes(self.plan.points):.0f} min total"
-                        + (f", hold +{self.plan.hold_extension_min:.0f} min for tool lag"
-                           if self.plan.hold_extension_min else ""))
+        flagged = sum(1 for w in self.plan.warnings if not w.startswith("Assumption"))
+        self.status.set(f"Cure plan: {b['nominal']:.0f} min nominal — {flagged} check(s) to read; "
+                        f"study article now uses {cycle.cycle_id} at {cycle.peak_C:.0f} °C.")
+
+    def _add_comparison(self):
+        cycle = self._selected_cycle()
+        if any(cid == cycle.cycle_id for cid, _, _ in self.comparison):
+            return
+        if len(self.comparison) >= 4:
+            raise ValueError("Up to 4 cycles can be compared — clear the comparison first.")
+        plan, _ = self._cure_plan(cycle)
+        self.comparison.append((cycle.cycle_id, f"{cycle.product} · {cycle.part_type}", plan.points))
+        if self.plan:
+            self._draw_cycle(self.plan.points, None)
+        else:
+            self._draw_cycle(plan.points, None)
+        self.status.set(f"Comparing {len(self.comparison)} cycle(s).")
+
+    def _clear_comparison(self):
+        self.comparison = []
+        if self.plan:
+            self._run_cure()
 
     def _draw_cycle(self, points, tau_min):
         c = self.canvas
         c.delete("all")
         self.update_idletasks()
-        w, h = max(c.winfo_width(), 900), 260
-        pad_l, pad_r, pad_t, pad_b = 55, 20, 20, 35
-        t_end = points[-1]["t_s"]
-        temps = [p["T_C"] for p in points]
-        t_lo, t_hi = 0.0, max(temps) * 1.1
+        w, h = max(c.winfo_width(), 900), 330
+        pad_l, pad_r, pad_t = 55, 70, 18
+        temp_bottom, strip_top, strip_bottom = 220, 250, 312
+        series = [points] + [p for _, _, p in self.comparison]
+        t_end = max(s[-1]["t_s"] for s in series)
+        t_hi = max(50.0, 50 * (int(max(p["T_C"] for s in series for p in s) * 1.1 / 50) + 1))
 
-        def xy(t, T):
-            return (pad_l + (w - pad_l - pad_r) * t / t_end,
-                    h - pad_b - (h - pad_t - pad_b) * (T - t_lo) / (t_hi - t_lo))
+        def X(t):
+            return pad_l + (w - pad_l - pad_r) * t / t_end
 
-        c.create_line(pad_l, h - pad_b, w - pad_r, h - pad_b)
-        c.create_line(pad_l, pad_t, pad_l, h - pad_b)
-        for T in range(0, int(t_hi) + 1, 50):
-            x, y = xy(0, T)
-            c.create_text(x - 8, y, text=str(T), anchor="e", font=("Segoe UI", 8))
-            c.create_line(pad_l, y, w - pad_r, y, fill="#eee")
-        for m in range(0, int(t_end / 60) + 1, 60):
-            x, y = xy(m * 60, 0)
-            c.create_text(x, y + 12, text=f"{m}", font=("Segoe UI", 8))
-        c.create_text(pad_l - 40, pad_t - 8, text="°C", anchor="w", font=("Segoe UI", 8))
-        c.create_text(w - pad_r, h - 6, text="minutes", anchor="e", font=("Segoe UI", 8))
+        def Y(T):
+            return temp_bottom - (temp_bottom - pad_t) * T / t_hi
 
-        air = [v for p in points for v in xy(p["t_s"], p["T_C"])]
+        # temperature axes
+        c.create_line(pad_l, temp_bottom, w - pad_r, temp_bottom)
+        c.create_line(pad_l, pad_t, pad_l, temp_bottom)
+        for T in range(0, int(t_hi) + 1, 50 if t_hi <= 250 else 100):
+            c.create_text(pad_l - 8, Y(T), text=str(T), anchor="e", font=("Segoe UI", 8))
+            c.create_line(pad_l, Y(T), w - pad_r, Y(T), fill="#eee")
+        step = 60 if t_end <= 900 * 60 else 120
+        for m in range(0, int(t_end / 60) + 1, step):
+            c.create_text(X(m * 60), strip_bottom + 10, text=f"{m}", font=("Segoe UI", 8))
+            c.create_line(X(m * 60), pad_t, X(m * 60), strip_bottom, fill="#f3f3f3")
+        c.create_text(pad_l - 44, pad_t - 6, text="°C", anchor="w", font=("Segoe UI", 8))
+        c.create_text(w - pad_r + 6, strip_bottom + 10, text="min", anchor="w", font=("Segoe UI", 8))
+
+        # Legend: one row between the temperature panel and the pressure strip,
+        # so it never sits on a curve.
+        legend = [(f"planned — air {cp.total_minutes(points):.0f} min", "#c0392b")]
+        palette = ["#7f8c8d", "#27ae60", "#8e44ad", "#d35400"]
+        for (cid, label, pts), colour in zip(self.comparison, palette):
+            line = [v for p in pts for v in (X(p["t_s"]), Y(p["T_C"]))]
+            c.create_line(*line, fill=colour, width=1.5)
+            legend.append((f"{label} {cp.total_minutes(pts):.0f} min", colour))
+
+        air = [v for p in points for v in (X(p["t_s"]), Y(p["T_C"]))]
         c.create_line(*air, fill="#c0392b", width=2)
-        c.create_text(pad_l + 12, pad_t + 4, text="autoclave air (programmed)",
-                      anchor="nw", fill="#c0392b", font=("Segoe UI", 9))
         if tau_min:
-            tau, dt, T_tool, tool = tau_min * 60.0, 30.0, points[0]["T_C"], []
-            t = 0.0
-            while t <= t_end:
-                T_air = _interp(points, t)
-                tool.extend(xy(t, T_tool))
-                T_tool += (T_air - T_tool) * (1 - pow(2.718281828, -dt / tau))
+            tau, dt, T_tool, tool, t = tau_min * 60.0, 30.0, points[0]["T_C"], [], 0.0
+            while t <= points[-1]["t_s"]:
+                tool.extend((X(t), Y(T_tool)))
+                T_tool += (_interp(points, t) - T_tool) * (1 - pow(2.718281828, -dt / tau))
                 t += dt
             c.create_line(*tool, fill="#1d4f91", width=2, dash=(5, 3))
-            c.create_text(pad_l + 12, pad_t + 20, text=f"tool (lumped, τ = {tau_min:.1f} min)",
-                          anchor="nw", fill="#1d4f91", font=("Segoe UI", 9))
-        else:
-            c.create_text(pad_l + 12, pad_t + 20, text="tool curve unavailable (c_p not published)",
-                          anchor="nw", fill="#777", font=("Segoe UI", 9))
+            legend.insert(1, (f"tool, lumped τ {tau_min:.1f} min", "#1d4f91"))
+        elif not self.comparison:
+            legend.insert(1, ("tool curve unavailable (c_p not published)", "#777"))
+        x_leg = pad_l
+        for text, colour in legend:
+            c.create_line(x_leg, temp_bottom + 13, x_leg + 14, temp_bottom + 13, fill=colour, width=2)
+            item = c.create_text(x_leg + 18, temp_bottom + 13, text=text, anchor="w", fill=colour,
+                                 font=("Segoe UI", 8))
+            x_leg = c.bbox(item)[2] + 16
+
+        # pressure / vacuum strip for the planned cycle
+        p_hi = max(1.0, max(p["P_bar"] for p in points))
+        def YP(v):
+            return strip_top + (strip_bottom - strip_top) * (p_hi - v) / (p_hi + 1.0)
+        c.create_line(pad_l, YP(0), w - pad_r, YP(0), fill="#bbb")
+        c.create_text(pad_l - 8, YP(0), text="0", anchor="e", font=("Segoe UI", 8))
+        c.create_text(pad_l - 8, YP(p_hi), text=f"{p_hi:g}", anchor="e", font=("Segoe UI", 8))
+        if YP(-1) - YP(0) >= 12:            # skip the label when it would sit on "0"
+            c.create_text(pad_l - 8, YP(-1), text="-1", anchor="e", font=("Segoe UI", 8))
+        for key, colour, name in (("P_bar", "#27ae60", "pressure (bar g)"), ("V_bar", "#555", "vacuum (bar g)")):
+            line = [X(0), YP(points[0][key])]
+            for p0, p1 in zip(points, points[1:]):
+                line += [X(p0["t_s"]), YP(p1[key]), X(p1["t_s"]), YP(p1[key])]
+            c.create_line(*line, fill=colour, width=1.5)
+        c.create_text(w - pad_r + 6, YP(p_hi), text="pressure", anchor="w", fill="#27ae60", font=("Segoe UI", 8))
+        c.create_text(w - pad_r + 6, YP(-1), text="vacuum", anchor="w", fill="#555", font=("Segoe UI", 8))
 
     def _export_ansys(self):
         if not self.plan:

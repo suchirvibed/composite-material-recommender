@@ -8,7 +8,7 @@ three decisions, using sourced data throughout:
 |---|---|---|---|
 | 1 | Fiber & prepreg recommender | Which fiber / prepreg / resin system? | AHP-weighted MCDM over the fiber, prepreg and resin databases |
 | 2 | Mold (tool) material selector | Which tool material, and why? | *Matrix Engine Report* — feasibility gate, CTE-mismatch physics, AHP profiles, sensitivity sweep, report card |
-| 3 | Cure-cycle planner | What cycle, how long, does the tool keep up? | HexPly M18/1 datasheet cycles, *ANSYS thermal cycle calculation*, Fisher et al. measured HTCs |
+| 3 | Cure-cycle planner | What cycle, how long, does the tool keep up? | 30 documented cycles (Hexcel, NCAMP, MIL-HDBK-17, project files), *ANSYS thermal cycle calculation*, Fisher et al. measured HTCs |
 | 4 | BOM & cost estimator | What does the DOE study cost (₹)? | *Autoclave Prepreg process BOM and cost*, Master Report Table 6 |
 | 5 | Full project report | All of 2–4 for one part, saved to `reports/` | — |
 | 6 | Validation cases (D6) | Does the engine reproduce accepted industry choices? | Tooling report, Master Report |
@@ -34,7 +34,7 @@ Work through the tabs left to right; each tab says what question it answers:
 | Project | Study article, problem statements, scoping question | Master Report §1.4, §2, §2.4 |
 | 1 · Material system | Fiber / prepreg / resin shortlist (+ M18/1 reference card) | §3.3 |
 | 2 · Tooling (PS1) | Mold material ranking, rejections, DOE low/high-CTE pair | §4.3–4.5, Matrix Engine Report |
-| 3 · Cure cycle (PS2) | Schedule, air vs tool temperature chart, hold extension, ANSYS table | §3.3, §4.5.2 |
+| 3 · Cure cycle (PS2) | 30 documented cycles: filters, staged pressure and vacuum, time band, post-cure, comparison, air vs tool chart, ANSYS table | §3.3, §4.5.2 |
 | 4 · DOE matrix | Table 1 test matrix with predicted δ / cycle time / spring-in; analysis of measured results | §3.2, §3.5 |
 | 5 · Cost (₹) | Panel BOM and DOE study cost | §5 |
 | 6 · Report | Everything above in one saved document | §7 |

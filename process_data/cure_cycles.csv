@@ -1,6 +1,31 @@
-cycle_id,product,part_type,steps,pressure_bar_min,pressure_bar_max,vacuum_bar,source,notes
-M18-1_MONO,HexPly M18/1 (carbon UD/fabric),monolithic,ramp:2:80;hold:60;ramp:2:180;hold:120;cool:2:25,4,7,-0.8,HexPly M18/1 datasheet p.3 (project HexPly_M18-1_Datasheet_Guide),Optional extra 1 h hold at 100 °C not included; datasheet says cool 'at a controlled rate' - cooling rate here is an assumption
-M18-1_SAND,HexPly M18/1 (carbon UD/fabric),sandwich,ramp:2:80;hold:60;ramp:2:180;hold:120;cool:2:25,2,2,-0.8,HexPly M18/1 datasheet p.3 (project HexPly_M18-1_Datasheet_Guide),Pressure limited to 2 bar so honeycomb core is not crushed; cooling rate is an assumption
-M18-1_ALT,HexPly M18/1 (carbon UD/fabric),monolithic,ramp:2:120;hold:120;ramp:2:180;hold:120;cool:2:25,0,0,-0.8,HexPly M18/1 datasheet p.3 (project HexPly_M18-1_Datasheet_Guide),Alternative cycle under vacuum only; ramp and cooling rates not stated - 2 °C/min assumed
-ANSYS_AL_DEMO,Project ANSYS thermal model (Aluminium 6061-T6 mould),any,ramp:2.8:180;hold:180;cool:2.8:25,0,0,0,Project Autoclave_Thermal_Cycle_Parameter_Calculations.pdf,Programmed autoclave-air temperature for the transient thermal model (not a prepreg cure specification)
-HEXTOOL_M61,HexTool M61 (BMI tooling prepreg),tool,ramp:1:190;hold:240;cool:1:25,7,7,0,Hexcel Industrial Selector Guide (HexTool table) + HexTool user guide,Plus free-standing post-cure 16 h at 220 °C to develop full Tg; ramp/cool rates not stated - 1 °C/min assumed
+cycle_id,product,matrix,process,part_type,peak_C,pressure_lo_bar,pressure_hi_bar,post_cure_peak_C,vent_C,source,source_location,notes
+HEX_8552_EU_MONO,HexPly 8552,epoxy 180 °C,autoclave,monolithic,180,7.0,7.0,,60,Hexcel product data sheet HexPly 8552 (EU),Curing Conditions — monolithic components,
+HEX_8552_EU_SAND,HexPly 8552,epoxy 180 °C,autoclave,sandwich,180,3.2,3.2,,60,Hexcel product data sheet HexPly 8552 (EU),Curing Conditions — honeycomb sandwich components,
+HEX_8552_US,HexPly 8552,epoxy 180 °C,autoclave,monolithic,176.7,5.86,6.89,,65.6,Hexcel product data sheet HexPly 8552 (US),"Cure Cycle — Autoclave, steps 1-7",
+HEX_M21_THIN,HexPly M21,epoxy 180 °C (toughened),autoclave,monolithic < 15 mm,180,7.0,7.0,,60,Hexcel product data sheet HexPly M21 (global),"Typical autoclave cure, monolithic < 15 mm","Rate is the actual component heat-up rate, not the air set point."
+HEX_M21_THICK,HexPly M21,epoxy 180 °C (toughened),autoclave,monolithic 15-48 mm,180,7.0,7.0,,60,Hexcel product data sheet HexPly M21 (global),"Typical autoclave cure, monolithic 15-48 mm",Slow ramps and a 150 °C dwell control exotherm in thick laminates.
+HEX_M21_SAND,HexPly M21,epoxy 180 °C (toughened),autoclave,sandwich,180,2.0,3.0,,60,Hexcel product data sheet HexPly M21 (global),"Typical autoclave cure, sandwich (honeycomb or foam)",No autoclave pressure until the resin has been at 135 °C for 60 min.
+HEX_913,HexPly 913,epoxy 125 °C,autoclave,monolithic,125,7.0,7.0,,,Hexcel product data sheet HexPly 913 (EU),Prepreg Curing Conditions,"Alternatives: 140 °C/40 min, 150 °C/20 min, 160 °C/10 min. Parts > 3 mm or ramps > 5 °C/min need a dwell (usually 80-100 °C) to avoid exotherm."
+HEX_913_150,HexPly 913,epoxy 125 °C,autoclave,monolithic,150,7.0,7.0,,,Hexcel product data sheet HexPly 913 (EU),Alternative cure cycles (150 °C / 20 min),
+HEX_M56_OVEN_MONO,HexPly M56,epoxy 180 °C (out-of-autoclave),oven (vacuum bag only),monolithic,180,0.0,0.0,,60,Hexcel product data sheet HexPly M56 (global),"Typical oven cure, monolithic part",
+HEX_M56_OVEN_SAND,HexPly M56,epoxy 180 °C (out-of-autoclave),oven (vacuum bag only),sandwich,180,0.0,0.0,,60,Hexcel product data sheet HexPly M56 (global),"Typical oven cure, sandwich structure",
+M18-1_MONO,HexPly M18/1,epoxy 180 °C (toughened),autoclave,monolithic,180,4.0,7.0,,,HexPly M18/1 datasheet (project HexPly_M18-1_Datasheet_Guide),p.3 monolithic cure,Optional extra 1 h hold at 100 °C not included.
+M18-1_SAND,HexPly M18/1,epoxy 180 °C (toughened),autoclave,sandwich,180,2.0,2.0,,,HexPly M18/1 datasheet (project HexPly_M18-1_Datasheet_Guide),p.3 sandwich cure,2 bar so the honeycomb core is not crushed.
+M18-1_ALT,HexPly M18/1,epoxy 180 °C (toughened),oven (vacuum bag only),monolithic,180,0.0,0.0,,,HexPly M18/1 datasheet (project HexPly_M18-1_Datasheet_Guide),p.3 alternative cycle,
+HEXTOOL_M61,HexTool M61 (tooling prepreg),BMI,autoclave,tool,190,7.0,7.0,220,,Hexcel Industrial Selector Guide (HexTool table) + HexTool user guide,HexTool cure,"Builds a composite TOOL, not a part."
+NCAMP_5320-1_C,Solvay CYCOM 5320-1,epoxy (out-of-autoclave),oven (vacuum bag only),monolithic,176.7,0.0,0.0,,65.6,"NCAMP NPS 85321 Rev D (2025), 5320-1 process specification",4.3 Baseline Cure Cycle (C),"Pre-cure vacuum hold 4 h for panels ≤ 4 ft², 16 h above. Holds start when the LAGGING thermocouple reaches temperature."
+MIL_3501-6,Hercules AS4/3501-6,epoxy 180 °C,autoclave,monolithic,176.7,5.86,7.58,,,MIL-HDBK-17-2F Vol. 2 (2002),4.2.12 processing,
+MIL_3502,Hercules AS4/3502,epoxy 180 °C,autoclave,monolithic,176.7,5.86,5.86,,,MIL-HDBK-17-2F Vol. 2 (2002),4.2.8 processing,
+MIL_976,Fiberite T300/976,epoxy 180 °C,autoclave,monolithic,176.7,6.89,6.89,,,MIL-HDBK-17-2F Vol. 2 (2002),4.2.17 processing,
+MIL_3900-2,Toray T800H/3900-2,epoxy 180 °C (toughened),autoclave,monolithic,176.7,5.86,5.86,,,MIL-HDBK-17-2F Vol. 2 (2002),4.2.34 processing,The material system of the Albert & Fernlund spring-in study.
+MIL_E7K8,U.S. Polymeric AS4/E7K8,epoxy 150 °C,autoclave,monolithic,151.7,3.79,3.79,,,MIL-HDBK-17-2F Vol. 2 (2002),4.2.3 processing,
+MIL_938,ICI Fiberite AS4/938,epoxy 180 °C,autoclave,monolithic,176.7,5.86,7.93,,,MIL-HDBK-17-2F Vol. 2 (2002),4.2.5 processing,
+MIL_997,ICI Fiberite AS4/997,epoxy 180 °C (toughened),autoclave,monolithic,176.7,5.86,5.86,,,MIL-HDBK-17-2F Vol. 2 (2002),4.2.28 processing,
+MIL_954-3,Fiberite M55J/954-3,cyanate ester,autoclave,monolithic,176.7,6.89,6.89,,,MIL-HDBK-17-2F Vol. 2 (2002),4.10.1 processing,
+MIL_F650,Hexcel T-300/F650,BMI,autoclave,monolithic,190.6,5.86,5.86,246.1,,MIL-HDBK-17-2F Vol. 2 (2002),4.4.1 processing,
+MIL_5250-3,Cytec AS4/5250-3,BMI,autoclave,monolithic,176.7,5.86,5.86,246.1,,MIL-HDBK-17-2F Vol. 2 (2002),4.4.4 processing,
+MIL_APC-2,ICI IM6/APC-2,PEEK (thermoplastic),autoclave,monolithic,382.2,4.14,4.14,,,MIL-HDBK-17-2F Vol. 2 (2002),4.9.1 processing,"Melt processing, not a chemical cure; only metal or ceramic tools survive 382 °C."
+MIL_F670,Celion/F670,polyimide,autoclave,monolithic,315.6,13.79,13.79,,,MIL-HDBK-17-2F Vol. 2 (2002),4.5.1 processing,Post-cure is called for but its schedule is not given.
+MIL_EA9396_VB,T300/EA 9396,epoxy 93 °C,oven (vacuum bag only),monolithic,91.9,0.0,0.0,,,MIL-HDBK-17-2F Vol. 2 (2002),4.2.27 processing,
+EC_OOA_80C,Easy Composites Easy-Preg / Vari-Preg,epoxy 80-140 °C,oven (vacuum bag only),monolithic,80,0.0,0.0,,,Project folder: EC-TDS Beginners' Guide to Out-of-Autoclave Prepreg,13. Loading into the Oven for Curing,"Oven pre-heated to 80 °C: the part starts at the set point, no programmed ramp."
+ANSYS_AL_DEMO,Project ANSYS thermal model (aluminium 6061-T6 mould),—,autoclave,any,180,0.0,0.0,,,Project Autoclave_Thermal_Cycle_Parameter_Calculations.pdf,Input assumptions,"Programmed autoclave-air temperature for the transient thermal model, not a prepreg cure."

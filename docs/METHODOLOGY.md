@@ -130,16 +130,30 @@ high-CTE arm (aluminium or mild steel) for the project's tool-material study
 
 ## 4b. Cure-cycle planner
 
-Cycles are taken only from project documents (HexPly M18/1 monolithic,
-sandwich and alternative cycles; the ANSYS aluminium-mould demonstration
-cycle; HexTool M61 tool cure). Each ramp lasts |ΔT|/rate, each hold its stated
-time (the same arithmetic as the project's ANSYS parameter calculation, which
-the planner reproduces to the second). The selected tool's time constant τ
-extends the final hold by τ·ln(lag/5 °C), because cure time starts when the
-lagging thermocouple reaches cure temperature (Hexcel Prepreg Technology).
-It warns on pressures outside the documented range, sandwich parts on a
-monolithic (high-pressure) cycle, and tools whose service limit is below the
-cure peak; it exports the ANSYS convection table as CSV.
+30 documented cycles (`process_data/SOURCES.md`): Hexcel 8552, M21, 913, M56
+and M18/1 datasheets, HexTool M61, the NCAMP 5320-1 process specification,
+13 MIL-HDBK-17-2F processing lines and the project's OOA guide and ANSYS
+calculation. Each is typed in its source units and converted by
+`build_cure_cycles.py`.
+
+Each step carries its documented **range** (ramp °C/min low–high, hold minutes
+low–high) and the **pressure and vacuum** in force, so staged pressure (8552 US:
+15 psig then 85–100 psig, vacuum vented at 30 psig), late pressure (M21
+sandwich: none until 60 min at 135 °C), vacuum reduction (M56) and pre-cure
+vacuum holds (5320-1) are modelled. Each ramp lasts |ΔT|/rate and each hold its
+time — the arithmetic of the project's ANSYS parameter calculation, which the
+planner reproduces to the second. Running every step at its fastest, middle and
+slowest documented value gives the **cycle-time band**; free-standing
+post-cures are timed separately.
+
+The selected tool's time constant τ extends the final hold by τ·ln(lag/5 °C),
+because cure time starts when the lagging thermocouple reaches cure
+temperature (Hexcel Prepreg Technology; NCAMP NPS 85321). Checks: pressure
+outside the documented window, an oven asked to run a pressure cycle, a
+sandwich part on a monolithic cycle, a laminate thicker than a thin-part cycle
+allows (M21 < 15 mm), the 913 exotherm dwell above 3 mm, a tool rated below the
+cure peak, and every value the source did not state. The ANSYS convection
+table export carries pressure and vacuum columns.
 
 ## 4c. BOM & cost estimator
 
