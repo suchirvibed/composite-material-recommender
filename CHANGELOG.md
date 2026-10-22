@@ -1,5 +1,26 @@
 # Changelog
 
+## v5.1 — project-centred desktop tool
+
+### Added
+- **Desktop window** (`project_gui.py`, launched by `run.bat`): tabs follow the
+  Master Report methodology — Project (study article, PS1–PS3, §2.4 scoping
+  question), Material system (+ HexPly M18/1 reference card), Tooling (PS1),
+  Cure cycle (PS2) with an air-vs-tool temperature chart, DOE matrix, Cost,
+  Report. Study article preloaded; input errors shown as dialogs; friendly
+  tool names; unverified costs marked ⚠.
+- **DOE builder** (`doe.py`): Master Report Table 1 factors at two levels,
+  full factorial or half fraction, replication, randomised order, predicted
+  δ / tool lag / cycle time / corner spring-in per run, study ₹ cost, CSV
+  export with blank measured columns, and main-effects analysis of measured
+  results (effect and t-ratio against replicate scatter).
+- 11 tests (63 total), including the window driven end to end.
+
+### Data issues found
+- Master Report Table 1 pressure levels (4 / 6 bar) exceed the M18/1
+  sandwich-cycle limit (2 bar) for the honeycomb study article — DOE runs
+  are warned (docs/DATA_ISSUES.md).
+
 ## v5.0 — finalised decision tool (built from the project documents)
 
 ### Added

@@ -1,10 +1,11 @@
 @echo off
-rem Double-click to start the Autoclave Prepreg Composite Decision Tool.
+rem Double-click to open the Autoclave Prepreg Study decision tool (desktop window).
+rem For the text-menu version run:  py app.py
 cd /d "%~dp0"
 where py >nul 2>nul
 if %errorlevel%==0 (
-    py app.py
+    py project_gui.py
 ) else (
-    python app.py
+    python project_gui.py
 )
-pause
+if errorlevel 1 pause

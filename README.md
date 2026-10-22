@@ -18,17 +18,34 @@ prediction, supplier qualification or trial parts.
 
 ## Run it
 
+Double-click **`run.bat`** — or:
+
 ```bash
 py -m pip install -r requirements.txt
-py app.py
+py project_gui.py
 ```
 
-or double-click **`run.bat`**. Every prompt shows a default in `[brackets]` —
-press Enter to accept it (defaults describe the project's 1 m² carbon/epoxy
-honeycomb panel). Invalid input is re-asked, never silently accepted.
+A desktop window opens with the project's study article already loaded
+(1 m² carbon/epoxy honeycomb sandwich panel, HexPly M18/1, 180 °C, 2 bar).
+Work through the tabs left to right; each tab says what question it answers:
+
+| Tab | Answers | Project link |
+|---|---|---|
+| Project | Study article, problem statements, scoping question | Master Report §1.4, §2, §2.4 |
+| 1 · Material system | Fiber / prepreg / resin shortlist (+ M18/1 reference card) | §3.3 |
+| 2 · Tooling (PS1) | Mold material ranking, rejections, DOE low/high-CTE pair | §4.3–4.5, Matrix Engine Report |
+| 3 · Cure cycle (PS2) | Schedule, air vs tool temperature chart, hold extension, ANSYS table | §3.3, §4.5.2 |
+| 4 · DOE matrix | Table 1 test matrix with predicted δ / cycle time / spring-in; analysis of measured results | §3.2, §3.5 |
+| 5 · Cost (₹) | Panel BOM and DOE study cost | §5 |
+| 6 · Report | Everything above in one saved document | §7 |
+
+The **DOE workflow**: pick the factors (the scoping question pre-selects them),
+generate the matrix, *Export matrix CSV*, fill the `measured_` columns after
+CMM / 3D scanning, then *Analyse measured results* for each factor's main
+effect. A text-menu version remains available: `py app.py`.
 
 ```bash
-py -m unittest discover -s tests -v     # 52 tests
+py -m unittest discover -s tests -v     # 63 tests
 py validation_cases.py                  # D6 validation set (6/6 pass)
 py evaluate_lamina_model.py 100         # lamina model validation
 py evaluate_weights.py 100              # fiber weight evaluation
@@ -49,7 +66,9 @@ weight sweep flags close calls. Unpublished values score as "not demonstrated".
 
 | Path | Contents |
 |---|---|
-| `app.py`, `run.bat` | Menu program and launcher |
+| `project_gui.py`, `run.bat` | Desktop window (main entry point) and launcher |
+| `app.py` | Text-menu version of the same tools |
+| `doe.py` | DOE test matrix (Table 1), predictions, main-effects analysis |
 | `updated_database_recommender_v4.py` | Fiber/prepreg/resin recommender |
 | `mold_selector.py`, `ahp.py` | Mold selection engine, generic AHP |
 | `cure_planner.py`, `cost_estimator.py` | Process planning and costing |

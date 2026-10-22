@@ -11,6 +11,7 @@ flags the affected outputs.
 | BOM & cost doc / Master Report Table 3 | Consumables high total stated as ₹38,850 per m²; the 16 rows add up to **₹42,850** (₹4,000 slip). The 6-panel figure ₹2,33,100 inherits it (rows give ₹2,57,100). | The estimator adds the rows. |
 | BOM & cost doc / Master Report Table 5 | **Mild steel mould ₹3k–13k** is 10–100× below aluminium (₹1–3L) and Invar (₹3–8L); likely ₹3L–13L. Table 6's aerospace scenario uses the low figure. | Kept as given, flagged UNVERIFIED in every report. It makes mild steel win the prototype and production profiles on cost — **confirm this number**. |
 | Master Report Table 6 | Low-cost moulds "₹70,000–2,80,000" for MDF/PU + aluminium do not match Table 5 (MDF ₹20–50k or PU ₹50k–1L, + aluminium ₹1–3L). Mid-range ₹2,00,000–5,30,000 vs rows ₹2,00,000–5,50,000. | The estimator uses Table 5 rows (low-cost = PU board + aluminium). |
+| Master Report Table 1 vs HexPly M18/1 datasheet | DOE cure-pressure levels "4 bar vs 6 bar", but the study article is a honeycomb **sandwich** panel and the M18/1 sandwich cycle is limited to **2 bar** to avoid core crush. | DOE runs above 2 bar on a sandwich panel carry a core-crush warning; choose levels within the prepreg's sandwich range or vary pressure on monolithic coupons. |
 | BOM & cost doc | Mould BOM rows 3, 5, 6, 7, 12 (CNC machining, polishing, tooling resin, reinforcement, inspection) have no cost. | Not included in mould cost. |
 
 ## Data gaps (cells left empty rather than invented)
