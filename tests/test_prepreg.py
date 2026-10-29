@@ -45,9 +45,23 @@ class TestSelection(unittest.TestCase):
         self.assertFalse(any("3900" in c.name for c in sand.ranked))   # no sandwich cycle in datasheet
         oven = ps.select(ps.LaminateRequirements(1500, equipment="oven"))
         self.assertTrue(oven.ranked)
-        self.assertTrue(all(c.master["product_system"] in ("M56", "M18/1") for c in oven.ranked))
+        self.assertTrue(all(c.master["product_system"] in ("M56", "M18/1", "M20") for c in oven.ranked))
         thick = ps.select(ps.LaminateRequirements(2800, laminate_mm=20))
         self.assertEqual(thick.best.cycle_id, "HEX_M21_THICK")
+
+    def test_m20_from_its_datasheet(self):
+        res = ps.select(ps.LaminateRequirements(2700, min_modulus_gpa=170))
+        m20 = next(c for c in res.ranked if c.variant["variant_id"] == "M20_IM7_UD")
+        self.assertEqual(m20.cycle_id, "HEX_M20_AC")
+        self.assertEqual(cp.get_cycle("HEX_M20_AC").peak_C, 130)
+        self.assertEqual(m20.tg_text, "Tg not published")
+        ps.selection_text(res)                                   # no crash on a missing Tg
+        tg = ps.select(ps.LaminateRequirements(2700, min_tg_C=150))
+        self.assertTrue(any("M20" in r.name and "Tg not published" in r.reasons for r in tg.rejected))
+        sand = ps.select(ps.LaminateRequirements(500, part_type="sandwich"))
+        self.assertFalse(any(c.master["product_system"] == "M20" for c in sand.ranked))
+        oven = ps.select(ps.LaminateRequirements(800, form="fabric", equipment="oven"))
+        self.assertIn("HEX_M20_VB", {c.cycle_id for c in oven.ranked})
 
     def test_form_filter(self):
         res = ps.select(ps.LaminateRequirements(500, form="fabric"))

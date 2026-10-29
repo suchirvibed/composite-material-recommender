@@ -242,7 +242,7 @@ DATA SOURCES & LIMITATIONS
   Lamina data                 literature_data/SOURCES.md (NCAMP, MIL-HDBK-17-2F, Toray, Hexcel)
   Tool materials              tooling_data/SOURCES.md (Carpenter/HTM, Proto Labs, Hexcel HexTool,
                               GrafTech, Easy Composites, RAMPF, General Plastics, project reports)
-  Cure cycles                 process_data/SOURCES.md (31 cycles: Hexcel, Toray, NCAMP, MIL-HDBK-17, project files)
+  Cure cycles                 process_data/SOURCES.md (33 cycles: Hexcel, Toray, NCAMP, MIL-HDBK-17, project files)
   Costs (₹, indicative)       process_data/*.csv (project BOM document)
   Heat transfer               Fisher, Levy & Kratz (2022), measured autoclave HTCs
   Spring-in                   Albert & Fernlund (2002), via the project spring-in summary

@@ -6,3 +6,4 @@ M56,HEX_M56_OVEN_MONO,,HEX_M56_OVEN_SAND,HEX_M56_OVEN_MONO,Hexcel HexPly M56 dat
 M18/1,M18-1_MONO,,M18-1_SAND,M18-1_ALT,HexPly M18/1 datasheet guide (project folder)
 913,HEX_913,,,,Hexcel HexPly 913 data sheet (EU) curing conditions
 3900,TORAY_3900,,,,Toray 3900 Prepreg System data sheet cure cycle
+M20,HEX_M20_AC,,,HEX_M20_VB,Hexcel HexPly M20 data sheet (global 2020) prepreg curing conditions

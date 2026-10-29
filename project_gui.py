@@ -325,7 +325,7 @@ class StudyApp(tk.Tk):
             self.c_equip.set(self.r_equip.get())
         self.p_card.set(
             f"Selected: {best.name} — {best.strength:.0f} MPa, {best.modulus:.0f} GPa, "
-            f"{best.density:.2f} g/cm³, Tg {best.tg:.0f} °C ({best.variant['source_document']})\n"
+            f"{best.density:.2f} g/cm³, {best.tg_text} ({best.variant['source_document']})\n"
             f"Cure cycle from its datasheet: {cycle.product} · {cycle.part_type} · {cycle.process}, "
             f"{cycle.peak_C:.0f} °C, {cp.pressure_text(cycle)} — {best.cycle_reason}. "
             f"{len(res.ranked)} candidate(s) pass; {len(res.no_data)} systems not evaluated (no data).")

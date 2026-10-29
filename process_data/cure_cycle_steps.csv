@@ -43,6 +43,12 @@ HEX_M56_OVEN_SAND,cure,2,hold,,,,55,65,0.0,-0.95,hold 110 ± 5 °C,stated
 HEX_M56_OVEN_SAND,cure,3,ramp,180,1,3,,,0.0,-0.95,,stated
 HEX_M56_OVEN_SAND,cure,4,hold,,,,120,150,0.0,-0.95,"hold 180 ± 5 °C, 120 +30/-0 min",stated
 HEX_M56_OVEN_SAND,cure,5,cool,60,2.78,2.78,,,0.0,-0.95,cool under vacuum; release below 140 °F,stated
+HEX_M20_VB,cure,1,ramp,130,0.5,1.0,,,0.0,-0.75,"full vacuum (> -0.75 bar), no pressure",stated
+HEX_M20_VB,cure,2,hold,,,,120,240,0.0,-0.75,dwell 120-240 min at 130 °C,stated
+HEX_M20_VB,cure,3,cool,60,3.0,3.0,,,0.0,-0.75,cool at 3 °C/min under vacuum,rate stated; end temperature 60 °C assumed (not stated)
+HEX_M20_AC,cure,1,ramp,130,0.5,1.0,,,3.0,-0.75,"full vacuum (> -0.75 bar), autoclave 1-3 bar (3 bar used)",stated
+HEX_M20_AC,cure,2,hold,,,,120,240,3.0,-0.75,dwell 120-240 min at 130 °C,stated
+HEX_M20_AC,cure,3,cool,60,3.0,3.0,,,3.0,-0.75,cool at 3 °C/min under vacuum,rate stated; end temperature 60 °C assumed (not stated)
 M18-1_MONO,cure,1,ramp,80,2,2,,,5.5,-0.8,"4-7 bar, -0.8 bar vacuum",stated
 M18-1_MONO,cure,2,hold,,,,60,60,5.5,-0.8,hold 80 °C — flow and air removal,stated
 M18-1_MONO,cure,3,ramp,180,2,2,,,5.5,-0.8,,stated

@@ -166,6 +166,24 @@ cycle("HEX_M56_OVEN_SAND", "HexPly M56", "epoxy 180 °C (out-of-autoclave)", "ov
              hold((120, 150), 0.0, -0.95, "hold 180 ± 5 °C, 120 +30/-0 min"),
              cool(60, dF(5), 0.0, -0.95, "cool under vacuum; release below 140 °F")])
 
+# HexPly M20 global datasheet (2020) — one cure specification, vacuum bag or autoclave.
+M20_NOTES = ("Datasheet gives one cure: vacuum bag (no pressure) or autoclave 1-3 bar. No sandwich cycle. "
+             "Thick repairs: a dwell and slower heat-up recommended (not quantified).")
+cycle("HEX_M20_VB", "HexPly M20", "epoxy 130 °C (repair, low-energy cure)", "oven (vacuum bag only)",
+      "monolithic", f"{HEX} HexPly M20 (global)", "Prepreg Curing Conditions — vacuum bag",
+      notes=M20_NOTES,
+      steps=[ramp(130, (0.5, 1.0), 0.0, -0.75, "full vacuum (> -0.75 bar), no pressure"),
+             hold((120, 240), 0.0, -0.75, "dwell 120-240 min at 130 °C"),
+             cool(60, (3.0, 3.0), 0.0, -0.75, "cool at 3 °C/min under vacuum",
+                  basis="rate stated; end temperature 60 °C assumed (not stated)")])
+cycle("HEX_M20_AC", "HexPly M20", "epoxy 130 °C (repair, low-energy cure)", "autoclave",
+      "monolithic", f"{HEX} HexPly M20 (global)", "Prepreg Curing Conditions — autoclave (1-3 bar)",
+      notes=M20_NOTES, p_range=(1.0, 3.0),
+      steps=[ramp(130, (0.5, 1.0), 3.0, -0.75, "full vacuum (> -0.75 bar), autoclave 1-3 bar (3 bar used)"),
+             hold((120, 240), 3.0, -0.75, "dwell 120-240 min at 130 °C"),
+             cool(60, (3.0, 3.0), 3.0, -0.75, "cool at 3 °C/min under vacuum",
+                  basis="rate stated; end temperature 60 °C assumed (not stated)")])
+
 M18 = "HexPly M18/1 datasheet (project HexPly_M18-1_Datasheet_Guide)"
 cycle("M18-1_MONO", "HexPly M18/1", "epoxy 180 °C (toughened)", "autoclave", "monolithic",
       M18, "p.3 monolithic cure", p_range=(4.0, 7.0),

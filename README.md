@@ -9,7 +9,7 @@ three decisions, using sourced data throughout:
 | 0 | Prepreg selector | Which carbon prepreg meets my strength / stiffness / density / Tg, and which cure cycle? | Laminate values and cure cycles from each prepreg's own datasheet |
 | 1 | Fiber & prepreg recommender | Which fiber / prepreg / resin system? | AHP-weighted MCDM over the fiber, prepreg and resin databases |
 | 2 | Mold (tool) material selector | Which tool material, and why? | *Matrix Engine Report* — feasibility gate, CTE-mismatch physics, AHP profiles, sensitivity sweep, report card |
-| 3 | Cure-cycle planner | What cycle, how long, does the tool keep up? | 31 documented cycles (Hexcel, Toray, NCAMP, MIL-HDBK-17, project files), *ANSYS thermal cycle calculation*, Fisher et al. measured HTCs |
+| 3 | Cure-cycle planner | What cycle, how long, does the tool keep up? | 33 documented cycles (Hexcel, Toray, NCAMP, MIL-HDBK-17, project files), *ANSYS thermal cycle calculation*, Fisher et al. measured HTCs |
 | 4 | BOM & cost estimator | What does the DOE study cost (₹)? | *Autoclave Prepreg process BOM and cost*, Master Report Table 6 |
 | 5 | Full project report | All of 2–4 for one part, saved to `reports/` | — |
 | 6 | Validation cases (D6) | Does the engine reproduce accepted industry choices? | Tooling report, Master Report |
@@ -40,7 +40,7 @@ Work through the tabs left to right; each tab says what question it answers:
 | Project | Laminate requirements → prepreg + datasheet cure cycle, problem statements, scoping question | Master Report §1.4, §2, §2.4 |
 | 1 · Material system | Fiber / prepreg / resin shortlist (+ M18/1 reference card) | §3.3 |
 | 2 · Tooling (PS1) | Mold material ranking, rejections, DOE low/high-CTE pair | §4.3–4.5, Matrix Engine Report |
-| 3 · Cure cycle (PS2) | 31 documented cycles: filters, staged pressure and vacuum, time band, post-cure, comparison, air vs tool chart, ANSYS table | §3.3, §4.5.2 |
+| 3 · Cure cycle (PS2) | 33 documented cycles: filters, staged pressure and vacuum, time band, post-cure, comparison, air vs tool chart, ANSYS table | §3.3, §4.5.2 |
 | 4 · DOE matrix | Table 1 test matrix with predicted δ / cycle time / spring-in; analysis of measured results | §3.2, §3.5 |
 | 5 · Cost (₹) | Panel BOM and DOE study cost | §5 |
 | 6 · Report | Everything above in one saved document | §7 |
@@ -51,7 +51,7 @@ CMM / 3D scanning, then *Analyse measured results* for each factor's main
 effect. A text-menu version remains available: `py app.py`.
 
 ```bash
-py -m unittest discover -s tests -v     # 81 tests
+py -m unittest discover -s tests -v     # 82 tests
 py validation_cases.py                  # D6 validation set (6/6 pass)
 py evaluate_lamina_model.py 100         # lamina model validation
 py evaluate_weights.py 100              # fiber weight evaluation

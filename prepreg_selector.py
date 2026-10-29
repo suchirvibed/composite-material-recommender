@@ -90,6 +90,10 @@ class Candidate:
         return _num(self.variant["tg_dry_C"])
 
     @property
+    def tg_text(self) -> str:
+        return f"Tg {self.tg:.0f} °C" if self.tg is not None else "Tg not published"
+
+    @property
     def name(self) -> str:
         return f"{self.master['manufacturer']} {self.master['product_system']} — {self.variant['variant']}"
 
@@ -196,12 +200,14 @@ def _score(cands: List[Candidate]):
     metrics = {
         "specific_strength": [c.strength / c.density for c in cands],
         "specific_modulus": [c.modulus / c.density for c in cands],
-        "tg": [c.tg or 0.0 for c in cands],
+        "tg": [c.tg for c in cands],
     }
     for name, values in metrics.items():
-        lo, hi = min(values), max(values)
+        known = [v for v in values if v is not None]
+        lo, hi = (min(known), max(known)) if known else (0.0, 0.0)
         for c, v in zip(cands, values):
-            n = 1.0 if hi == lo else (v - lo) / (hi - lo)
+            # Unpublished value = not demonstrated (0); it does not stretch the scale for the rest.
+            n = 0.0 if v is None else (1.0 if hi == lo else (v - lo) / (hi - lo))
             c.parts[name] = WEIGHTS[name] * n
     for c in cands:
         c.score = sum(c.parts.values())
@@ -220,7 +226,7 @@ def selection_text(res: SelectionResult) -> str:
         b = res.best
         cycle = cp.get_cycle(b.cycle_id)
         lines += [f"SELECTED: {b.name}",
-                  f"  {b.strength:.0f} MPa, {b.modulus:.0f} GPa, {b.density:.2f} g/cm³, Tg {b.tg:.0f} °C "
+                  f"  {b.strength:.0f} MPa, {b.modulus:.0f} GPa, {b.density:.2f} g/cm³, {b.tg_text} "
                   f"({b.variant['test_condition']}; {b.variant['normalization']})",
                   f"  Source: {b.variant['source_document']} — {b.variant['source_location']}",
                   f"  Cure cycle: {cycle.cycle_id} — {cycle.product}, {cycle.part_type}, peak "

@@ -81,7 +81,7 @@ from what the laminate must achieve.
    cured-laminate strength, so `literature_data/prepreg_laminate_properties.csv`
    holds the 0° tensile strength and modulus, laminate density, cured ply
    thickness and dry Tg transcribed from each system's datasheet — one row per
-   published fiber variant (11 variants of 6 systems), each with its table and
+   published fiber variant (13 variants of 7 systems), each with its table and
    URL. Systems with no published data are listed as *datasheet needed*;
    nothing is guessed.
 2. **Hard filters** (pass / fail with a reason): strength ≥ required, modulus ≥
@@ -158,7 +158,7 @@ high-CTE arm (aluminium or mild steel) for the project's tool-material study
 
 ## 4b. Cure-cycle planner
 
-31 documented cycles (`process_data/SOURCES.md`): Hexcel 8552, M21, 913, M56
+33 documented cycles (`process_data/SOURCES.md`): Hexcel 8552, M20, M21, 913, M56
 and M18/1 and Toray 3900 datasheets, HexTool M61, the NCAMP 5320-1 process specification,
 13 MIL-HDBK-17-2F processing lines and the project's OOA guide and ANSYS
 calculation. Each is typed in its source units and converted by

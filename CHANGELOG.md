@@ -1,5 +1,31 @@
 # Changelog
 
+## v5.5 — HexPly M20 datasheet added (Rohan)
+
+Changes requested by Rohan, using the HexPly M20 global datasheet (2020) supplied for the project.
+
+### Added
+- **M20 laminate data** in `literature_data/prepreg_laminate_properties.csv`:
+  M20/40%/G904 plain-weave carbon (877 MPa, 65 GPa, 1.53 g/cm³, Tg 155 °C,
+  Vf 52 %) and M20/34%/134/IM7 UD (2790 MPa, 175 GPa, 1.57 g/cm³, Vf 58 %).
+  The datasheet gives Tg only for the G904 column, so IM7 is marked "Tg not
+  published" and fails any Tg requirement rather than borrowing 155 °C. The
+  woven glass version is not carbon and is left out.
+- **M20 cure cycles** `HEX_M20_VB` (vacuum bag / oven, no pressure) and
+  `HEX_M20_AC` (autoclave, 1-3 bar): full vacuum > -0.75 bar, 0.5-1 °C/min to
+  130 °C, dwell 120-240 min, cool 3 °C/min under vacuum. The end-of-cool
+  temperature is not stated and is flagged as an assumption (60 °C). 33 cycles
+  in the library.
+- `prepreg_cure_map.csv`: M20 → autoclave cycle for monolithic parts, vacuum-bag
+  cycle for oven; no sandwich cycle, as in the datasheet.
+- 1 test (82 total).
+
+### Changed
+- The selector shows "Tg not published" instead of failing when a datasheet
+  gives no Tg; an unpublished Tg scores as not demonstrated and no longer shifts the
+  other prepregs' Tg scores.
+- 40 prepreg systems still need datasheets (was 41).
+
 ## v5.4 — prepreg selection from laminate requirements (Rohan)
 
 Changes requested by Rohan: the Project tab no longer assumes a 1 m²
