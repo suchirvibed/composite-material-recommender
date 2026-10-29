@@ -1,0 +1,8 @@
+product_system,monolithic,thick,sandwich,oven,source
+HexPly 8552,HEX_8552_EU_MONO,,HEX_8552_EU_SAND,,Hexcel HexPly 8552 data sheet (EU) curing conditions
+HexPly M21,HEX_M21_THIN,HEX_M21_THICK,HEX_M21_SAND,,Hexcel HexPly M21 data sheet typical autoclave cures
+M21,HEX_M21_THIN,HEX_M21_THICK,HEX_M21_SAND,,Hexcel HexPly M21 data sheet typical autoclave cures
+M56,HEX_M56_OVEN_MONO,,HEX_M56_OVEN_SAND,HEX_M56_OVEN_MONO,Hexcel HexPly M56 data sheet typical oven cures
+M18/1,M18-1_MONO,,M18-1_SAND,M18-1_ALT,HexPly M18/1 datasheet guide (project folder)
+913,HEX_913,,,,Hexcel HexPly 913 data sheet (EU) curing conditions
+3900,TORAY_3900,,,,Toray 3900 Prepreg System data sheet cure cycle

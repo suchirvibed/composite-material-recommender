@@ -11,6 +11,7 @@
 | [Hexcel HexPly M21 data sheet](https://hexcel.com/wp-content/uploads/2025/12/HexPly_M21_global_DataSheet.pdf) | `HEX_M21_THIN`, `HEX_M21_THICK`, `HEX_M21_SAND` | Thin (< 15 mm), thick (15-48 mm: 0.5-1 °C/min, 150 °C 180 min dwell) and sandwich (no pressure until 60 min at 135 °C, then 2-3 bar) cycles |
 | [Hexcel HexPly 913 data sheet (EU)](https://hexcel.com/wp-content/uploads/2025/12/HexPly_913_eu_DataSheet.pdf) | `HEX_913`, `HEX_913_150` | 125 °C 60 min at 7 bar, 2-8 °C/min; alternatives 140/150/160 °C; exotherm dwell for parts > 3 mm |
 | [Hexcel HexPly M56 data sheet](https://hexcel.com/wp-content/uploads/2026/01/HexPly_M56_global_DataSheet.pdf) | `HEX_M56_OVEN_MONO`, `HEX_M56_OVEN_SAND` | Out-of-autoclave oven cure: -0.95 bar, 110 °C 60 min, (vacuum to -0.5 bar for monolithic), 180 °C 120 +30 min, release below 140 °F |
+| [Toray 3900 Prepreg System data sheet](https://www.toraycma.com/wp-content/uploads/3900-Prepreg-System.pdf) | `TORAY_3900` | Full vacuum, 95 psi, vent bag at 20 psi; 3 ± 2 °F/min to 350 ± 10 °F, 120-180 min; cool ≤ 5 °F/min to 140 °F before releasing pressure (no sandwich cycle given) |
 | HexPly M18/1 datasheet guide (project folder) | `M18-1_MONO`, `M18-1_SAND`, `M18-1_ALT` | 2 °C/min, 80 °C 1 h, 180 °C 2 h; 4-7 bar monolithic, 2 bar sandwich; alternative 120 °C/180 °C vacuum-only |
 | Hexcel Industrial Selector Guide + HexTool user guide | `HEXTOOL_M61` | 190 °C, 7 bar, 240 min + free-standing 220 °C post-cure (16 h) |
 | [NCAMP NPS 85321 Rev D (2025)](https://www.wichita.edu/industry_and_defense/NIAR/Documents/NPS_85321_Rev_D_8.12.2025_5320-1_Process_Spec.pdf) | `NCAMP_5320-1_C` | Cycom 5320-1 vacuum-bag-only: pre-cure vacuum hold 4 h (≤ 4 ft²) / 16 h, 1-5 °F/min to 250 °F 120 min, to 350 °F 120 min, cool below 150 °F; holds timed from the lagging thermocouple |
@@ -28,3 +29,7 @@
 - **Easy Composites 80 °C cycle**: pre-heated oven, modelled as a 10 °C/min entry.
 
 Every assumption appears in the planner's CHECKS list as "Assumption: …".
+
+## Prepreg → cure-cycle map
+
+`prepreg_cure_map.csv` names, for each prepreg system in `Prepreg_Master_Database_v2_Expanded.csv` that has a datasheet cycle on file, which cycle to use for a monolithic part, a thick part (> 15 mm, M21 only), a honeycomb sandwich and an oven (vacuum-bag-only) cure. An empty cell means the datasheet gives no such cycle; the prepreg selector then rejects that prepreg for that case instead of borrowing another system's cycle.

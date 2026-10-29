@@ -72,6 +72,34 @@ Preset weights (all CR ≤ 0.004):
 Text matching uses whole words/tokens, so "pa" does not match "capable" and
 grade "AS4" does not match "AS4C".
 
+## 3a. Prepreg selector (requirements → prepreg → cure cycle)
+
+`prepreg_selector.py` answers "which carbon prepreg, and how do I cure it?"
+from what the laminate must achieve.
+
+1. **Data.** The prepreg master database identifies 48 systems but carries no
+   cured-laminate strength, so `literature_data/prepreg_laminate_properties.csv`
+   holds the 0° tensile strength and modulus, laminate density, cured ply
+   thickness and dry Tg transcribed from each system's datasheet — one row per
+   published fiber variant (11 variants of 6 systems), each with its table and
+   URL. Systems with no published data are listed as *datasheet needed*;
+   nothing is guessed.
+2. **Hard filters** (pass / fail with a reason): strength ≥ required, modulus ≥
+   required, density ≤ allowed, Tg ≥ required, fiber form, and a documented
+   cure cycle for the part type and equipment.
+3. **Ranking** of the survivors, min-max normalised: specific strength σ/ρ
+   50 %, specific modulus E/ρ 30 %, Tg 20 %.
+4. **Cure cycle** from the winner's own datasheet via
+   `process_data/prepreg_cure_map.csv`: oven equipment → its vacuum-bag-only
+   cycle; honeycomb sandwich → its sandwich cycle; laminate > 15 mm → its
+   thick-part cycle where one exists; otherwise its monolithic cycle. The
+   cycle's peak temperature, pressure and first ramp become the study
+   article's values for tooling, cure planning, DOE and cost.
+
+Datasheet values are typical values, measured to each supplier's own test
+standard and normalisation (noted per row); they are not design allowables.
+NCAMP-measured means for 8552 run 7-9 % below the datasheet figures.
+
 ## 4. Lamina estimator
 
 Parts are made from laminas (fiber + resin), not bare fibers. For each
@@ -130,8 +158,8 @@ high-CTE arm (aluminium or mild steel) for the project's tool-material study
 
 ## 4b. Cure-cycle planner
 
-30 documented cycles (`process_data/SOURCES.md`): Hexcel 8552, M21, 913, M56
-and M18/1 datasheets, HexTool M61, the NCAMP 5320-1 process specification,
+31 documented cycles (`process_data/SOURCES.md`): Hexcel 8552, M21, 913, M56
+and M18/1 and Toray 3900 datasheets, HexTool M61, the NCAMP 5320-1 process specification,
 13 MIL-HDBK-17-2F processing lines and the project's OOA guide and ANSYS
 calculation. Each is typed in its source units and converted by
 `build_cure_cycles.py`.

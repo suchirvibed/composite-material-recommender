@@ -203,6 +203,20 @@ cycle("HEXTOOL_M61", "HexTool M61 (tooling prepreg)", "BMI", "autoclave", "tool"
             cool(AMBIENT_C, ASSUMED_COOL, basis="assumed")])
 
 # ----------------------------------------------------------------------
+# Toray 3900 prepreg system data sheet (prepreg DB source URL)
+# ----------------------------------------------------------------------
+cycle("TORAY_3900", "Toray 3900 (T800S / T830H)", "epoxy 177 °C (highly toughened)", "autoclave",
+      "monolithic", "Toray 3900 Prepreg System data sheet", "Cure Cycle - Autoclave, steps 1-6",
+      vent_C=F(140), p_range=(psi(95), psi(95)),
+      notes="Vacuum 28 inHg minimum at sea level. No sandwich cycle is given in the data sheet.",
+      steps=[ramp(F(350), dF(1, 5), psi(95), 0.0,
+                  "full vacuum, 95 psi; vent the bag when pressure reaches 20 psi; 3.0 ± 2.0 °F/min"),
+             hold((120, 180), psi(95), 0.0, "hold 350 ± 10 °F, 120-180 min"),
+             cool(F(140), (1.0, 2.78), psi(95), 0.0,
+                  "cool to 140 °F or lower before releasing pressure",
+                  basis="maximum 5 °F/min stated — lower bound 1 °C/min assumed")])
+
+# ----------------------------------------------------------------------
 # NCAMP process specification
 # ----------------------------------------------------------------------
 cycle("NCAMP_5320-1_C", "Solvay CYCOM 5320-1", "epoxy (out-of-autoclave)", "oven (vacuum bag only)",

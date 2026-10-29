@@ -26,6 +26,7 @@ from tkinter.scrolledtext import ScrolledText
 import cost_estimator as ce
 import cure_planner as cp
 import doe
+import prepreg_selector as ps
 import mold_selector as ms
 import updated_database_recommender_v4 as v4
 
@@ -161,6 +162,7 @@ class StudyApp(tk.Tk):
         self._doe_tab()
         self._cost_tab()
         self._report_tab()
+        self._guard(self._select_prepreg)
 
     # ------------------------------------------------------------------
     # helpers
@@ -207,30 +209,56 @@ class StudyApp(tk.Tk):
         t = self._tab("Project")
         ttk.Label(t, text="Design and Process Study of Autoclave-Cured Prepreg Composites",
                   style="Title.TLabel").pack(anchor="w")
-        hint(t, "Study article: a representative 1 m² carbon/epoxy honeycomb sandwich panel, "
-                "cured in a standard autoclave cycle (120-180 °C). These values feed every tab; "
-                "change them here once.").pack(anchor="w", pady=(2, 10))
+        hint(t, "Enter what the laminate must achieve. The tool picks the carbon-fiber prepreg from "
+                "the project prepreg database (laminate values from each system's datasheet) and "
+                "recommends the cure cycle from that prepreg's own datasheet. Every tab uses the result.").pack(
+            anchor="w", pady=(2, 6))
 
-        form = ttk.LabelFrame(t, text="Study article", padding=10)
-        form.pack(fill="x")
-        self.a_len = self._field(form, 0, 0, "Length (m)", 1.0)
-        self.a_wid = self._field(form, 0, 2, "Width (m)", 1.0)
-        self.a_temp = self._field(form, 0, 4, "Cure temperature (°C)", 180)
-        self.a_press = self._field(form, 1, 0, "Cure pressure (bar)", 2.0)
-        self.a_ramp = self._field(form, 1, 2, "Heating ramp (°C/min)", 2.0)
-        self.a_cte = self._field(form, 1, 4, "Part CTE (µm/m·°C)", 2.0)
-        self.a_sandwich = self._check(form, 2, 0, "Honeycomb sandwich panel (20 mm Nomex core)", True)
-        self.a_cycle = self._combo(form, 2, 2, "Cure cycle", list(self.cycle_by_label),
-                                   self.label_by_cycle["M18-1_SAND"], 40)
-        ttk.Button(form, text="Reset to project study article",
-                   command=self._reset_article).grid(row=3, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        req = ttk.LabelFrame(t, text="Laminate requirements", padding=8)
+        req.pack(fill="x")
+        self.r_strength = self._field(req, 0, 0, "Min 0° tensile strength (MPa)", 2000)
+        self.r_modulus = self._field(req, 0, 2, "Min 0° tensile modulus (GPa, blank = any)", "")
+        self.r_density = self._field(req, 0, 4, "Max laminate density (g/cm³, blank = any)", 1.60)
+        self.r_tg = self._field(req, 1, 0, "Min dry Tg (°C, blank = any)", "")
+        self.r_form = self._combo(req, 1, 2, "Fiber form", ["any", "UD", "fabric"], "any", 10)
+        self.r_equip = self._combo(req, 1, 4, "Equipment", ["autoclave", "oven"], "autoclave", 10)
 
-        ps = ttk.LabelFrame(t, text="Problem statements and where the tool answers them", padding=10)
-        ps.pack(fill="x", pady=10)
+        part = ttk.LabelFrame(t, text="Part", padding=8)
+        part.pack(fill="x", pady=(6, 0))
+        self.a_len = self._field(part, 0, 0, "Length (m)", 1.0)
+        self.a_wid = self._field(part, 0, 2, "Width (m)", 1.0)
+        self.a_part = self._combo(part, 0, 4, "Part type", ["monolithic laminate", "honeycomb sandwich"],
+                                  "monolithic laminate", 20)
+        self.a_lam = self._field(part, 1, 0, "Laminate / skin thickness (mm)", 2.0)
+        self.a_cte = self._field(part, 1, 2, "Part CTE (µm/m·°C)", 2.0)
+        # Set by the selected prepreg's cure cycle; editable to explore overrides.
+        self.a_temp = self._field(part, 2, 0, "Cure temperature (°C) — from cycle", 180)
+        self.a_press = self._field(part, 2, 2, "Cure pressure (bar) — from cycle", 7.0)
+        self.a_ramp = self._field(part, 2, 4, "Heating ramp (°C/min) — from cycle", 2.0)
+        self.a_cycle = self._combo(part, 3, 0, "Cure cycle", list(self.cycle_by_label),
+                                   self.label_by_cycle["HEX_8552_EU_MONO"], 80)
+        part.grid_slaves(row=3, column=1)[0].grid_configure(columnspan=5)   # long cycle names
+
+        bar = ttk.Frame(t)
+        bar.pack(fill="x", pady=6)
+        ttk.Button(bar, text="Select prepreg and cure cycle", style="Run.TButton",
+                   command=lambda: self._guard(self._select_prepreg)).pack(side="left")
+        ttk.Button(bar, text="Datasheets needed…", command=self._show_missing).pack(side="left", padx=6)
+        ttk.Button(bar, text="Reset requirements", command=self._reset_article).pack(side="left")
+        self.p_card = tk.StringVar()
+        ttk.Label(t, textvariable=self.p_card, foreground="#1d4f91", wraplength=1100,
+                  justify="left").pack(anchor="w")
+        frame, self.p_tree = table(t, ("#", "Prepreg", "Strength MPa", "Modulus GPa", "Density",
+                                       "σ/ρ", "Cure cycle", "Score"),
+                                   (36, 400, 90, 90, 70, 60, 170, 60), 4)
+        frame.pack(fill="x", pady=4)
+        self.prepreg = None
+
+        probs = ttk.LabelFrame(t, text="Problem statements and where the tool answers them", padding=6)
+        probs.pack(fill="x", pady=4)
         for i, (code, title, question, where) in enumerate(PROBLEMS):
-            ttk.Label(ps, text=f"{code} — {title}", style="Head.TLabel").grid(row=i * 2, column=0, sticky="w")
-            ttk.Label(ps, text=f"{question}   →  {where}", wraplength=1050).grid(
-                row=i * 2 + 1, column=0, sticky="w", pady=(0, 6))
+            ttk.Label(probs, text=f"{code} — {title}: {question}  →  {where}", wraplength=1100).grid(
+                row=i, column=0, sticky="w")
 
         scope = ttk.LabelFrame(t, text="Scoping question (Master Report §2.4) — sets the DOE factors",
                                padding=10)
@@ -247,24 +275,86 @@ class StudyApp(tk.Tk):
             row=3, column=0, sticky="w", pady=(6, 0))
 
     def _reset_article(self):
-        for var, value in [(self.a_len, 1.0), (self.a_wid, 1.0), (self.a_temp, 180),
-                           (self.a_press, 2.0), (self.a_ramp, 2.0), (self.a_cte, 2.0)]:
+        for var, value in [(self.a_len, 1.0), (self.a_wid, 1.0), (self.a_lam, 2.0), (self.a_cte, 2.0),
+                           (self.r_strength, 2000), (self.r_modulus, ""), (self.r_density, 1.60),
+                           (self.r_tg, "")]:
             var.set(str(value))
-        self.a_sandwich.set(True)
-        self.a_cycle.set(self.label_by_cycle["M18-1_SAND"])
-        self.status.set("Study article reset to the project's 1 m² sandwich panel.")
+        self.a_part.set("monolithic laminate")
+        self.r_form.set("any")
+        self.r_equip.set("autoclave")
+        self._guard(self._select_prepreg)
+
+    def requirements(self) -> ps.LaminateRequirements:
+        return ps.LaminateRequirements(
+            min_strength_mpa=number(self.r_strength, "Min 0° tensile strength", 0),
+            min_modulus_gpa=number(self.r_modulus, "Min 0° tensile modulus", 0, optional=True),
+            max_density_g_cm3=number(self.r_density, "Max laminate density", 0.5, optional=True),
+            min_tg_C=number(self.r_tg, "Min dry Tg", 0, optional=True),
+            form=self.r_form.get(),
+            part_type="sandwich" if self.a_part.get().startswith("honeycomb") else "monolithic",
+            equipment=self.r_equip.get(),
+            laminate_mm=number(self.a_lam, "Laminate thickness", 0.1))
+
+    def _select_prepreg(self):
+        res = ps.select(self.requirements())
+        self.prepreg_result = res
+        rows = [(c.rank, c.name, f"{c.strength:.0f}", f"{c.modulus:.0f}", f"{c.density:.2f}",
+                 f"{c.strength / c.density:.0f}", c.cycle_id, f"{c.score:.2f}") for c in res.ranked]
+        fill(self.p_tree, rows)
+        self.sections["0 Prepreg selection"] = ps.selection_text(res).split("\n", 3)[3]   # drop banner
+        best = res.best
+        if best is None:
+            self.prepreg = None
+            closest = sorted(res.rejected, key=lambda r: len(r.reasons))[:2]
+            self.p_card.set("No prepreg with published laminate data meets every requirement. Closest: "
+                            + " | ".join(f"{r.name}: {'; '.join(r.reasons)}" for r in closest)
+                            + f"\n{len(res.no_data)} systems have no laminate data yet — see Datasheets needed.")
+            self.status.set("Prepreg selection: no candidate — relax a requirement.")
+            return
+        self.prepreg = best
+        cycle = cp.get_cycle(best.cycle_id)
+        first_ramp = next((s for s in cycle.steps if s.kind == "ramp"), None)
+        self.a_cycle.set(self.label_by_cycle[cycle.cycle_id])
+        self.a_temp.set(f"{cycle.peak_C:g}")
+        self.a_press.set(f"{cycle.pressure_max:g}")
+        if first_ramp:
+            self.a_ramp.set(f"{first_ramp.rate():g}")
+        if hasattr(self, "c_cycle"):
+            self.c_cycle.set(self.label_by_cycle[cycle.cycle_id])
+            self.c_lam.set(self.a_lam.get())
+            self.c_equip.set(self.r_equip.get())
+        self.p_card.set(
+            f"Selected: {best.name} — {best.strength:.0f} MPa, {best.modulus:.0f} GPa, "
+            f"{best.density:.2f} g/cm³, Tg {best.tg:.0f} °C ({best.variant['source_document']})\n"
+            f"Cure cycle from its datasheet: {cycle.product} · {cycle.part_type} · {cycle.process}, "
+            f"{cycle.peak_C:.0f} °C, {cp.pressure_text(cycle)} — {best.cycle_reason}. "
+            f"{len(res.ranked)} candidate(s) pass; {len(res.no_data)} systems not evaluated (no data).")
+        self.status.set(f"Prepreg: {best.name}; cure cycle {cycle.cycle_id} set for every tab.")
+
+    def _show_missing(self):
+        res = getattr(self, "prepreg_result", None) or ps.select(self.requirements())
+        with_cycle = [n for n in res.no_data if n["has_cure_cycle"]]
+        lines = [f"{len(res.no_data)} prepreg systems in the database have no laminate data in hand, so "
+                 f"they cannot be selected by strength. Send their product data sheets (0° tensile "
+                 f"strength and modulus, laminate density, Tg, cure cycle):", ""]
+        lines += [f"• {n['product']} — {n['matrix']}, cure {n['cure_C']} °C" for n in res.no_data]
+        if with_cycle:
+            lines += ["", "Cure cycle already on file (laminate data still needed): "
+                      + ", ".join(n["product"] for n in with_cycle)]
+        messagebox.showinfo("Datasheets needed", "\n".join(lines), parent=self)
 
     def article(self) -> doe.StudyArticle:
         return doe.StudyArticle(
             length_m=number(self.a_len, "Length", 0.01), width_m=number(self.a_wid, "Width", 0.01),
-            sandwich=self.a_sandwich.get(), cure_temp_C=number(self.a_temp, "Cure temperature", 30),
+            sandwich=self.a_part.get().startswith("honeycomb"),
+            cure_temp_C=number(self.a_temp, "Cure temperature", 30),
             base_pressure_bar=number(self.a_press, "Cure pressure", 0),
             base_ramp_C_min=number(self.a_ramp, "Heating ramp", 0.1),
             part_cte_ppm=number(self.a_cte, "Part CTE"), cycle_id=self.a_cycle_id())
 
     def a_cycle_id(self) -> str:
         cycle = self.cycle_by_label.get(self.a_cycle.get())
-        return cycle.cycle_id if cycle else "M18-1_SAND"
+        return cycle.cycle_id if cycle else "HEX_8552_EU_MONO"
 
     # ------------------------------------------------------------------
     # 1 Material system
@@ -879,7 +969,7 @@ class StudyApp(tk.Tk):
             f"cycle {a.cycle_id}",
             f"Study focus (§2.4): {self.focus.get()}",
         ]
-        order = ["1 Material system", "2 Tooling (PS1)", "3 Cure cycle (PS2)", "4 DOE matrix",
+        order = ["0 Prepreg selection", "1 Material system", "2 Tooling (PS1)", "3 Cure cycle (PS2)", "4 DOE matrix",
                  "4b DOE analysis", "5 Cost"]
         body = []
         for key in order:

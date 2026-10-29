@@ -13,6 +13,7 @@ M18-1_MONO,HexPly M18/1,epoxy 180 °C (toughened),autoclave,monolithic,180,4.0,7
 M18-1_SAND,HexPly M18/1,epoxy 180 °C (toughened),autoclave,sandwich,180,2.0,2.0,,,HexPly M18/1 datasheet (project HexPly_M18-1_Datasheet_Guide),p.3 sandwich cure,2 bar so the honeycomb core is not crushed.
 M18-1_ALT,HexPly M18/1,epoxy 180 °C (toughened),oven (vacuum bag only),monolithic,180,0.0,0.0,,,HexPly M18/1 datasheet (project HexPly_M18-1_Datasheet_Guide),p.3 alternative cycle,
 HEXTOOL_M61,HexTool M61 (tooling prepreg),BMI,autoclave,tool,190,7.0,7.0,220,,Hexcel Industrial Selector Guide (HexTool table) + HexTool user guide,HexTool cure,"Builds a composite TOOL, not a part."
+TORAY_3900,Toray 3900 (T800S / T830H),epoxy 177 °C (highly toughened),autoclave,monolithic,176.7,6.55,6.55,,60.0,Toray 3900 Prepreg System data sheet,"Cure Cycle - Autoclave, steps 1-6",Vacuum 28 inHg minimum at sea level. No sandwich cycle is given in the data sheet.
 NCAMP_5320-1_C,Solvay CYCOM 5320-1,epoxy (out-of-autoclave),oven (vacuum bag only),monolithic,176.7,0.0,0.0,,65.6,"NCAMP NPS 85321 Rev D (2025), 5320-1 process specification",4.3 Baseline Cure Cycle (C),"Pre-cure vacuum hold 4 h for panels ≤ 4 ft², 16 h above. Holds start when the LAGGING thermocouple reaches temperature."
 MIL_3501-6,Hercules AS4/3501-6,epoxy 180 °C,autoclave,monolithic,176.7,5.86,7.58,,,MIL-HDBK-17-2F Vol. 2 (2002),4.2.12 processing,
 MIL_3502,Hercules AS4/3502,epoxy 180 °C,autoclave,monolithic,176.7,5.86,5.86,,,MIL-HDBK-17-2F Vol. 2 (2002),4.2.8 processing,

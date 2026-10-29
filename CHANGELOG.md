@@ -1,5 +1,45 @@
 # Changelog
 
+## v5.4 — prepreg selection from laminate requirements (Rohan)
+
+Changes requested by Rohan: the Project tab no longer assumes a 1 m²
+honeycomb sandwich panel cured on the M18/1 cycle. The user states what the
+laminate must achieve; the tool picks the carbon-fiber prepreg from
+`Prepreg_Master_Database_v2_Expanded.csv` and recommends the cure cycle from
+that prepreg's own datasheet.
+
+### Added
+- **`prepreg_selector.py`** — inputs: minimum 0° tensile strength (MPa),
+  optional minimum 0° modulus (GPa), maximum laminate density (g/cm³),
+  optional minimum dry Tg (°C), fiber form (any / UD / fabric), part type
+  (monolithic / honeycomb sandwich), equipment (autoclave / oven) and
+  laminate thickness. Hard pass/fail filters with a reason for every
+  rejection; survivors ranked on specific strength 50 %, specific modulus
+  30 %, Tg 20 %.
+- **`literature_data/prepreg_laminate_properties.csv`** (built by
+  `build_prepreg_properties.py`) — cured-laminate values for 11 fiber variants
+  of 6 database systems (HexPly 8552 AS4/IM7, M21 IM7/AS7/IMA, M56 IM7/AS7,
+  M18/1 UD/fabric, Toray 3900 T800S UD / T830H PW), each with datasheet table
+  and URL. M18/1 density is rule-of-mixtures and flagged ANALYTICAL.
+- **`process_data/prepreg_cure_map.csv`** — which datasheet cycle belongs to
+  each prepreg: monolithic, thick (> 15 mm, M21), sandwich, oven. A prepreg
+  whose datasheet gives no cycle for the part type or equipment is rejected,
+  not given another system's cycle.
+- **Toray 3900 autoclave cure cycle** (`TORAY_3900`, 177 °C, 95 psi) from its
+  data sheet — 31 cycles in the library.
+- **Project tab**: Laminate requirements and Part frames, *Select prepreg and
+  cure cycle* button, candidate table and selection card; the chosen cycle
+  sets cure temperature, pressure, ramp and the cycle for every later tab.
+  *Datasheets needed…* lists the database systems with no laminate data.
+  Report gains section "0 Prepreg selection".
+- 9 tests (81 total). Text menu (`app.py`) gains option 8, Prepreg selector; README updated.
+
+### Changed
+- Default study article is now a 1 × 1 m, 2 mm monolithic laminate with
+  requirement 2000 MPa / ≤ 1.60 g/cm³ (was the fixed M18/1 sandwich panel).
+- Prepregs without published laminate data (41 systems) are listed as
+  "datasheet needed" and never given guessed properties.
+
 ## v5.3 — documented cure-cycle library
 
 ### Added

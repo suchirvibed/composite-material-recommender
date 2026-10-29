@@ -15,6 +15,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+import cure_planner as cp  # noqa: E402
 import doe  # noqa: E402
 
 
@@ -122,6 +123,25 @@ class TestWindow(unittest.TestCase):
         self.assertEqual(on, doe.FOCUS_PRESETS["design"])
         app.focus.set("process")
         app._apply_focus()
+
+    def test_requirements_select_prepreg_and_cycle(self):
+        app = self.app
+        app.r_strength.set("2500")
+        app.r_modulus.set("150")
+        app.a_part.set("honeycomb sandwich")
+        app._select_prepreg()
+        self.assertIsNotNone(app.prepreg)
+        a = app.article()
+        cycle = cp.get_cycle(a.cycle_id)
+        self.assertTrue(a.sandwich)
+        self.assertEqual(cycle.part_type, "sandwich")
+        self.assertEqual(a.cure_temp_C, cycle.peak_C)
+        self.assertIn("0 PREPREG SELECTION", app.report_text())
+        app.r_strength.set("4000")
+        app._select_prepreg()
+        self.assertIsNone(app.prepreg)
+        app._reset_article()
+        self.assertFalse(app.article().sandwich)
 
     def test_bad_input_is_reported_not_crashing(self):
         app = self.app

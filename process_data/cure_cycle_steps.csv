@@ -64,6 +64,9 @@ HEXTOOL_M61,cure,3,cool,25.0,2.0,3.0,,,7.0,,,cooling not stated — assumed
 HEXTOOL_M61,postcure,1,ramp,220,1.0,3.0,,,,,,free-standing post-cure; ramp assumed
 HEXTOOL_M61,postcure,2,hold,,,,960,960,,,post-cure 16 h at 220 °C to develop full Tg,stated
 HEXTOOL_M61,postcure,3,cool,25.0,2.0,3.0,,,,,,assumed
+TORAY_3900,cure,1,ramp,176.7,0.56,2.78,,,6.55,0.0,"full vacuum, 95 psi; vent the bag when pressure reaches 20 psi; 3.0 ± 2.0 °F/min",stated
+TORAY_3900,cure,2,hold,,,,120,180,6.55,0.0,"hold 350 ± 10 °F, 120-180 min",stated
+TORAY_3900,cure,3,cool,60.0,1.0,2.78,,,6.55,0.0,cool to 140 °F or lower before releasing pressure,maximum 5 °F/min stated — lower bound 1 °C/min assumed
 NCAMP_5320-1_C,cure,1,hold,25.0,,,240,240,0.0,-0.95,"pre-cure vacuum hold ≥ 28 inHg (4 h, ≤ 4 ft² panel)",stated
 NCAMP_5320-1_C,cure,2,ramp,121.1,0.56,2.78,,,0.0,-0.95,full vacuum,stated
 NCAMP_5320-1_C,cure,3,hold,,,,115,125,0.0,-0.95,"hold 250 °F, 120 ± 5 min",stated

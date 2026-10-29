@@ -9,6 +9,7 @@ One program for the whole project:
   5  Full project report              (2 + 3 + 4 for one part, saved to reports/)
   6  Validation cases                 (validation_cases.py — D6)
   7  Data sources & limitations
+  8  Prepreg selector                 (prepreg_selector.py — requirements → prepreg + datasheet cure cycle)
 
 Every prompt shows a default in [brackets]; press Enter to accept it.
 Start with:  py app.py   (or double-click run.bat)
@@ -23,6 +24,7 @@ from pathlib import Path
 import cost_estimator as ce
 import cure_planner as cp
 import mold_selector as ms
+import prepreg_selector as ps
 import validation_cases as vc
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -214,14 +216,33 @@ def mould_types_for(selection: ms.SelectionResult) -> list:
     return [by_material[m.material_id] for m in chosen if m.material_id in by_material]
 
 
+def run_prepreg_selector():
+    print("\nPREPREG SELECTOR — state what the laminate must achieve.")
+    req = ps.LaminateRequirements(
+        min_strength_mpa=ask("Min 0° tensile strength (MPa)", 2000.0, float, minimum=0),
+        min_modulus_gpa=ask_optional_float("Min 0° tensile modulus (GPa)"),
+        max_density_g_cm3=ask_optional_float("Max laminate density (g/cm³)"),
+        min_tg_C=ask_optional_float("Min dry Tg (°C)"),
+        form=ask("Fiber form", "any", choices=["any", "UD", "fabric"]),
+        part_type=ask("Part type", "monolithic", choices=["monolithic", "sandwich"]),
+        equipment=ask("Equipment", "autoclave", choices=["autoclave", "oven"]),
+        laminate_mm=ask("Laminate / skin thickness (mm)", 2.0, float, minimum=0.1))
+    res = ps.select(req)
+    print("\n" + ps.selection_text(res))
+    if res.best:
+        print("\n" + cp.plan_text(cp.plan(cp.get_cycle(res.best.cycle_id), laminate_mm=req.laminate_mm,
+                                         sandwich=req.part_type == "sandwich", equipment=req.equipment)))
+
+
 def show_sources():
     print("""
 DATA SOURCES & LIMITATIONS
   Fibers / prepregs / resins  Carbon_Fiber_Master_v6, Prepreg_Master_v2, Resin_Master_v10 (sourced rows)
+  Prepreg laminate values     literature_data/prepreg_laminate_properties.csv (Hexcel, Toray datasheets)
   Lamina data                 literature_data/SOURCES.md (NCAMP, MIL-HDBK-17-2F, Toray, Hexcel)
   Tool materials              tooling_data/SOURCES.md (Carpenter/HTM, Proto Labs, Hexcel HexTool,
                               GrafTech, Easy Composites, RAMPF, General Plastics, project reports)
-  Cure cycles                 process_data/SOURCES.md (30 cycles: Hexcel, NCAMP, MIL-HDBK-17, project files)
+  Cure cycles                 process_data/SOURCES.md (31 cycles: Hexcel, Toray, NCAMP, MIL-HDBK-17, project files)
   Costs (₹, indicative)       process_data/*.csv (project BOM document)
   Heat transfer               Fisher, Levy & Kratz (2022), measured autoclave HTCs
   Spring-in                   Albert & Fernlund (2002), via the project spring-in summary
@@ -239,6 +260,7 @@ MENU = [
     ("5", "Full project report (mold + cure + cost)", run_full_report),
     ("6", "Validation cases (D6)", lambda: print("\n" + vc.validation_text())),
     ("7", "Data sources & limitations", show_sources),
+    ("8", "Prepreg selector (requirements → prepreg + cure cycle)", run_prepreg_selector),
 ]
 
 
